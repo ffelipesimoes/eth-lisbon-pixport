@@ -161,10 +161,10 @@ async function main() {
       console.log("\nStep 4/5 — Spender transfers 300 EURC within allowance → expect SUCCESS...");
       const TRANSFER_AMOUNT = 30000n; // 300.00 EURC
 
-      const transferClient = buildClient(op);
-      // For approved transfers, the SPENDER must sign with their key,
-      // but the transaction is submitted FROM the treasury's perspective
-      // using addApprovedTokenTransfer
+      // HIP-336: spender must be the transaction operator (fee payer).
+      // Hedera identifies the spender by who pays the fee, not by extra signatures.
+      const spenderOpConfig = { accountId: spenderId, privateKey: spenderKey.toString(), network: "testnet" as const };
+      const transferClient = buildClient(spenderOpConfig);
       const transferTx = await new TransferTransaction()
         .addApprovedTokenTransfer(
           TokenId.fromString(tokenId),
@@ -179,9 +179,7 @@ async function main() {
         .setMaxTransactionFee(new Hbar(5))
         .freezeWith(transferClient);
 
-      // Spender signs as the approved delegate
-      const signedTransferTx = await transferTx.sign(spenderKey);
-      const transferResponse = await signedTransferTx.execute(transferClient);
+      const transferResponse = await transferTx.execute(transferClient);
       const transferReceipt = await transferResponse.getReceipt(transferClient);
       const transferTxId = transferResponse.transactionId.toString();
 
@@ -209,7 +207,8 @@ async function main() {
       let recusaTxId = "";
       let recusaStatus = "";
       try {
-        const recusaClient = buildClient(op);
+        // HIP-336: spender must be operator — reuse spenderOpConfig from Step 4
+        const recusaClient = buildClient(spenderOpConfig);
         const recusaTx = await new TransferTransaction()
           .addApprovedTokenTransfer(
             TokenId.fromString(tokenId),
@@ -224,8 +223,7 @@ async function main() {
           .setMaxTransactionFee(new Hbar(5))
           .freezeWith(recusaClient);
 
-        const signedRecusaTx = await recusaTx.sign(spenderKey);
-        const recusaResponse = await signedRecusaTx.execute(recusaClient);
+        const recusaResponse = await recusaTx.execute(recusaClient);
 
         // This getReceipt() call will throw with SPENDER_DOES_NOT_HAVE_ALLOWANCE
         const recusaReceipt = await recusaResponse.getReceipt(recusaClient);
