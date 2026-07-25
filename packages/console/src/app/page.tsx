@@ -1,10 +1,33 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { MandateStatus, HcsEntry, PayResult } from "../lib/api";
-import { fetchMandateStatus, fetchHcsAudit, createMandate, executePay } from "../lib/api";
+import { IDKitWidget, VerificationLevel, type ISuccessResult } from "@worldcoin/idkit";
+import type {
+  MandateStatus,
+  HcsEntry,
+  PayResult,
+  WorldIdConfig,
+  WorldIdVerifyResult,
+} from "../lib/api";
+import {
+  fetchMandateStatus,
+  fetchHcsAudit,
+  createMandate,
+  executePay,
+  fetchWorldIdConfig,
+  verifyWorldId,
+} from "../lib/api";
 import type { Language } from "../lib/i18n";
 import { translations } from "../lib/i18n";
+
+/**
+ * Stage fallback (documented in docs/world-identity-check-test-report.md):
+ * NEXT_PUBLIC_SKIP_WORLDID=true turns the tier cards into a pre-applied tier
+ * selector — clicking a card submits a mock proof to POST /worldid/verify,
+ * which the gateway answers in WORLD_MOCK mode. The demo never depends on
+ * World portal / simulator reachability.
+ */
+const SKIP_WORLDID = process.env.NEXT_PUBLIC_SKIP_WORLDID === "true";
 
 const DEMO_BRCODE =
   "00020126400014BR.GOV.BCB.PIX0118teste@pixport.demo52040000530398654041.005802BR5912PIXPORT Demo6006Lisboa62070503***630462EF";
@@ -36,6 +59,12 @@ export default function ConsolePage() {
 
   // ── World Identity Check state ───────────────────────────────────────────
   const [selectedWorldLevel, setSelectedWorldLevel] = useState<WorldLevel>("orb");
+  /** Backend verification result — the ONLY trusted source for the tier cap. */
+  const [worldVerify, setWorldVerify] = useState<WorldIdVerifyResult | null>(null);
+  const [worldConfig, setWorldConfig] = useState<WorldIdConfig | null>(null);
+  const [identityPayer, setIdentityPayer] = useState("");
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   // ── Create Mandate state ──────────────────────────────────────────────────
   const [newPayeePixKey, setNewPayeePixKey] = useState("");
@@ -96,6 +125,9 @@ export default function ConsolePage() {
     setMandate(null);
     setMandateError(null);
     setSelectedWorldLevel("orb");
+    setWorldVerify(null);
+    setVerifyError(null);
+    setIdentityPayer("");
     setActiveStep(1);
   }, [handleClearStep2, handleClearStep3]);
 
@@ -125,6 +157,100 @@ export default function ConsolePage() {
     const id = setInterval(() => { void refreshHcs(); }, 10_000);
     return () => clearInterval(id);
   }, [refreshHcs]);
+
+  // Fetch World widget config (app_id/action/mock) from the gateway — single source of truth.
+  useEffect(() => {
+    fetchWorldIdConfig()
+      .then(setWorldConfig)
+      .catch(() => setWorldConfig(null)); // gateway-offline banner already covers this
+  }, []);
+
+  /**
+   * Backend verification — the ONLY source of truth for the tier.
+   * The widget's client-side result is never trusted: the proof goes to
+   * POST /worldid/verify, which runs verifyCloudProof() against the Cloud API
+   * (or trusts the level in WORLD_MOCK stage-fallback mode) and returns the
+   * allowance tier. The displayed/selected level follows the server response.
+   */
+  const runBackendVerify = useCallback(
+    async (proof: ISuccessResult, signal: string) => {
+      setVerifying(true);
+      setVerifyError(null);
+      try {
+        const data = await verifyWorldId({
+          proof: {
+            proof: proof.proof,
+            merkle_root: proof.merkle_root,
+            nullifier_hash: proof.nullifier_hash,
+            verification_level: proof.verification_level as "orb" | "device",
+          },
+          signal,
+        });
+        setWorldVerify(data);
+        setSelectedWorldLevel(data.verified && data.verificationLevel ? data.verificationLevel : "none");
+        if (data.verified && signal) {
+          // Identity is bound to this payer — carry it into the next steps.
+          setNewPayerAccountId(signal);
+          setPayPayerAccountId(signal);
+          // Pick up the IDENTITY_CHECK record in the audit trail (Step 4).
+          setTimeout(() => { void refreshHcs(); }, 2_000);
+        }
+      } catch (err) {
+        setVerifyError(err instanceof Error ? err.message : "Unknown error");
+        setWorldVerify(null);
+      } finally {
+        setVerifying(false);
+      }
+    },
+    [refreshHcs],
+  );
+
+  /**
+   * Tier-card click. Stage fallback (NEXT_PUBLIC_SKIP_WORLDID=true): the card
+   * IS the pre-applied tier selector — a mock proof goes to the backend so the
+   * server still resolves the tier. Live mode: client-side pre-selection only,
+   * explicitly tagged "not verified" until the IDKit flow runs.
+   */
+  const handleCardSelect = useCallback(
+    (level: WorldLevel) => {
+      if (SKIP_WORLDID) {
+        if (level === "none") {
+          setWorldVerify(null);
+          setSelectedWorldLevel("none");
+          return;
+        }
+        if (!identityPayer) {
+          setVerifyError(t.worldSignalRequired);
+          return;
+        }
+        const mockProof = {
+          proof: "0x0000000000000000000000000000000000000000000000000000000000000000",
+          merkle_root: "0x0000000000000000000000000000000000000000000000000000000000000000",
+          // Unique per run so mock sessions stay distinguishable in the HCS trail
+          nullifier_hash: `0xmock${Date.now().toString(16)}`,
+          verification_level: level as VerificationLevel,
+        } as ISuccessResult;
+        void runBackendVerify(mockProof, identityPayer);
+        return;
+      }
+      // Live mode: pre-selection only — backend verification happens via the widget.
+      setSelectedWorldLevel(level);
+      setWorldVerify(null);
+    },
+    [identityPayer, runBackendVerify, t.worldSignalRequired],
+  );
+
+  /** True when the requested amount exceeds the backend-verified tier cap. */
+  const amountExceedsTierCap = (() => {
+    if (!worldVerify?.verified || !payAmount) return false;
+    const parsed = parseFloat(payAmount);
+    if (isNaN(parsed)) return false;
+    try {
+      return BigInt(Math.round(parsed * 100)) > BigInt(worldVerify.tier.maxSpendUnits);
+    } catch {
+      return false;
+    }
+  })();
 
   const handleCreateMandate = useCallback(async () => {
     if (!newPayeePixKey || !newPayerAccountId || !newMaxAmount) return;
@@ -162,6 +288,28 @@ export default function ConsolePage() {
       return;
     }
 
+    // Backend-verified tier cap enforcement — rejected before the Pix call,
+    // same RECUSA pattern as the ZERO-tier path above.
+    if (worldVerify?.verified) {
+      const parsed = parseFloat(payAmount);
+      if (!isNaN(parsed)) {
+        try {
+          if (BigInt(Math.round(parsed * 100)) > BigInt(worldVerify.tier.maxSpendUnits)) {
+            const msg = lang === "pt"
+              ? `Valor excede o teto do tier ${worldVerify.tier.name} (R$ ${worldVerify.tier.maxSpendBrl}) verificado pelo backend.`
+              : `Amount exceeds the backend-verified ${worldVerify.tier.name} tier cap (R$ ${worldVerify.tier.maxSpendBrl}).`;
+            setPayError(msg);
+            setPayResult({
+              decision: "rejected",
+              reason: `TIER_INSUFFICIENT: amount ${payAmount} BRL > ${worldVerify.tier.name} tier cap ${worldVerify.tier.maxSpendBrl} BRL (backend-verified) — rejected before Pix call`,
+              decidedAt: new Date().toISOString(),
+            });
+            return;
+          }
+        } catch { /* fall through to gateway validation */ }
+      }
+    }
+
     setPaying(true);
     setPayError(null);
     setPayResult(null);
@@ -179,7 +327,7 @@ export default function ConsolePage() {
     } finally {
       setPaying(false);
     }
-  }, [payBrCode, payPayerAccountId, payAmount, payMandateId, selectedWorldLevel, lang, refreshHcs]);
+  }, [payBrCode, payPayerAccountId, payAmount, payMandateId, selectedWorldLevel, worldVerify, lang, refreshHcs]);
 
   const lookupMandate = useCallback(async () => {
     if (!mandateId.trim()) return;
@@ -306,7 +454,7 @@ export default function ConsolePage() {
         <div className="card">
           <h2>
             <span className="step-num">1</span>
-            {t.worldPanelTitle}
+            {t.worldPanelTitle} <span className="endpoint">POST /worldid/verify</span>
           </h2>
 
           <p style={{ fontSize: "0.85rem", color: "#cbd5e1", lineHeight: 1.5, marginBottom: "1rem" }}>
@@ -316,7 +464,7 @@ export default function ConsolePage() {
           <div className="world-tier-grid">
             <div
               className={`world-tier-card ${selectedWorldLevel === "orb" ? "selected-orb" : ""}`}
-              onClick={() => setSelectedWorldLevel("orb")}
+              onClick={() => handleCardSelect("orb")}
             >
               <div className="tier-name" style={{ color: "#34d399" }}>
                 <span>{t.orbTitle}</span>
@@ -328,7 +476,7 @@ export default function ConsolePage() {
 
             <div
               className={`world-tier-card ${selectedWorldLevel === "device" ? "selected-device" : ""}`}
-              onClick={() => setSelectedWorldLevel("device")}
+              onClick={() => handleCardSelect("device")}
             >
               <div className="tier-name" style={{ color: "#fbbf24" }}>
                 <span>{t.deviceTitle}</span>
@@ -340,7 +488,7 @@ export default function ConsolePage() {
 
             <div
               className={`world-tier-card ${selectedWorldLevel === "none" ? "selected-none" : ""}`}
-              onClick={() => setSelectedWorldLevel("none")}
+              onClick={() => handleCardSelect("none")}
             >
               <div className="tier-name" style={{ color: "#f87171" }}>
                 <span>{t.noneTitle}</span>
@@ -351,6 +499,81 @@ export default function ConsolePage() {
             </div>
           </div>
 
+          {/* ── Real verification: proof signal + IDKit widget / stage fallback ── */}
+          <div className="input-row" style={{ marginTop: "1rem" }}>
+            <input
+              type="text"
+              placeholder={t.worldSignalPlaceholder}
+              value={identityPayer}
+              onChange={(e) => setIdentityPayer(e.target.value)}
+            />
+            <button
+              className="btn-secondary"
+              onClick={() => setIdentityPayer(DEMO_PAYER)}
+              title="Use spender account"
+            >
+              {t.btnDemoAccount}
+            </button>
+          </div>
+
+          {SKIP_WORLDID ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
+              <span className="badge badge-pending" title="NEXT_PUBLIC_SKIP_WORLDID=true — mock proof verified by the gateway in WORLD_MOCK mode">
+                {t.stageFallbackBadge}
+              </span>
+              <span className="dim" style={{ fontSize: "0.8rem" }}>{t.stageFallbackHint}</span>
+            </div>
+          ) : worldConfig?.configured ? (
+            <div style={{ marginTop: "0.5rem" }}>
+              <IDKitWidget
+                app_id={worldConfig.appId as `app_${string}`}
+                action={worldConfig.action}
+                signal={identityPayer}
+                verification_level={VerificationLevel.Orb}
+                onSuccess={(result) => { void runBackendVerify(result, identityPayer); }}
+                onError={(err) => setVerifyError(`IDKit error: ${err.message ?? String(err.code)}`)}
+              >
+                {({ open }) => (
+                  <button className="btn-pay" onClick={open} disabled={verifying || !identityPayer}>
+                    {verifying ? t.btnVerifyingWorld : t.btnVerifyWorld}
+                  </button>
+                )}
+              </IDKitWidget>
+            </div>
+          ) : (
+            <p className="empty" style={{ marginTop: "0.5rem" }}>
+              {worldConfig === null ? t.worldLoadingConfig : t.worldNotConfigured}
+            </p>
+          )}
+
+          {verifyError && <p className="error" style={{ marginTop: "0.5rem" }}>{verifyError}</p>}
+
+          {worldVerify && (
+            <div className={`decision-box decision-${worldVerify.verified ? "approved" : "rejected"}`} style={{ marginTop: "0.75rem" }}>
+              <div className="decision-header">
+                <span className={`badge badge-${worldVerify.tier.name === "orb" ? "approved" : worldVerify.tier.name === "device" ? "pending" : "rejected"}`}>
+                  {worldVerify.tier.name === "none" ? "UNVERIFIED" : `${worldVerify.tier.name.toUpperCase()} TIER`}
+                </span>
+                <span className="decision-reason">
+                  {worldVerify.verified
+                    ? `${worldVerify.tier.label} — ${t.capLabel} R$ ${worldVerify.tier.maxSpendBrl} (${t.backendVerifiedTag})`
+                    : (worldVerify.reason ?? t.worldVerifyFailed)}
+                </span>
+              </div>
+              <div className="decision-meta">
+                {worldVerify.mock && <span className="dim">{t.mockVerifyTag}</span>}
+                {worldVerify.hcsSequenceNumber && (
+                  <span className="dim">{t.hcsSeqLabel} #{worldVerify.hcsSequenceNumber}</span>
+                )}
+                {worldVerify.hashscanUrl && (
+                  <a href={worldVerify.hashscanUrl} target="_blank" rel="noreferrer">
+                    {t.viewHashscan}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(168, 85, 247, 0.1)", border: "1px solid rgba(168, 85, 247, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#f0abfc", fontWeight: 600 }}>
             {t.step1Badge}
           </div>
@@ -359,6 +582,10 @@ export default function ConsolePage() {
             <span className="dim" style={{ fontSize: "0.8rem" }}>
               {lang === "pt" ? "Nível de identidade selecionado: " : "Selected identity level: "}
               <strong style={{ color: "#f0abfc" }}>{selectedWorldLevel.toUpperCase()}</strong>
+              {" · "}
+              {worldVerify?.verified
+                ? <span style={{ color: "#86efac" }}>{t.backendVerifiedTag}</span>
+                : <span>{t.clientSelectedTag}</span>}
             </span>
             <button onClick={() => setActiveStep(2)}>
               {t.btnNextStep2}
@@ -387,6 +614,9 @@ export default function ConsolePage() {
 
           <div style={{ marginBottom: "1rem", fontSize: "0.82rem", color: "#a78bfa" }}>
             {t.linkedWorldTier} <span className="mono" style={{ fontWeight: 700, color: "#f0abfc" }}>{selectedWorldLevel.toUpperCase()} ({selectedWorldLevel === "orb" ? "HIGH Tier 10k" : selectedWorldLevel === "device" ? "MEDIUM Tier 1k" : "ZERO Tier 0"})</span>
+            {worldVerify?.verified
+              ? <span style={{ color: "#86efac" }}> · {t.backendVerifiedTag}</span>
+              : <span className="dim"> · {t.clientSelectedTag}</span>}
           </div>
 
           <div className="input-row">
@@ -525,13 +755,45 @@ export default function ConsolePage() {
             />
           </div>
 
+          {/* Identity gate — the tier resolved in Step 1 changes what this button allows. */}
+          <div style={{ margin: "0.5rem 0" }}>
+            {worldVerify?.verified ? (
+              <span className="dim">
+                {t.identityLineLabel}{" "}
+                <span className={`badge badge-${worldVerify.tier.name === "orb" ? "approved" : "pending"}`}>
+                  {worldVerify.tier.name.toUpperCase()}
+                </span>{" "}
+                {t.capLabel} <strong style={{ color: "#e2e8f0" }}>R$ {worldVerify.tier.maxSpendBrl}</strong>
+                {" · "}
+                <span style={{ color: "#86efac" }}>{t.backendVerifiedTag}</span>
+                {worldVerify.mock ? ` (${t.mockVerifyTag})` : ""}
+              </span>
+            ) : (
+              <span className="dim">
+                {t.identityLineLabel}{" "}
+                <span className={`badge badge-${selectedWorldLevel === "orb" ? "approved" : selectedWorldLevel === "device" ? "pending" : "rejected"}`}>
+                  {selectedWorldLevel.toUpperCase()}
+                </span>{" "}
+                <span>{t.clientSelectedTag}</span>
+              </span>
+            )}
+          </div>
+
           <button
             className="btn-pay"
             onClick={() => { void handlePay(); }}
-            disabled={paying || !payBrCode || !payPayerAccountId || !payAmount || !payMandateId}
+            disabled={paying || !payBrCode || !payPayerAccountId || !payAmount || !payMandateId || amountExceedsTierCap}
           >
             {paying ? t.btnProcessingPay : t.btnExecutePay}
           </button>
+
+          {amountExceedsTierCap && (
+            <p className="error" style={{ marginTop: "0.4rem" }}>
+              {lang === "pt"
+                ? `Valor excede o teto do tier ${worldVerify?.tier.name} (R$ ${worldVerify?.tier.maxSpendBrl}) verificado pelo backend.`
+                : `Amount exceeds the backend-verified ${worldVerify?.tier.name} tier cap of R$ ${worldVerify?.tier.maxSpendBrl}.`}
+            </p>
+          )}
 
           {payError && <p className="error" style={{ marginTop: "0.75rem" }}>{payError}</p>}
 
