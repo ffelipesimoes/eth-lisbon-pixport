@@ -167,54 +167,84 @@ Living log (re-runnable): [docs/TESTNET-METRICS.md](./docs/TESTNET-METRICS.md). 
 
 ---
 
-## Setup
+## Quickstart — One command, everything running
 
 ### Prerequisites
 
-- Node.js ≥20
-- Hedera Testnet account ([portal.hedera.com](https://portal.hedera.com))
-- World ID Developer App ([developer.worldcoin.org](https://developer.worldcoin.org))
-- Banco Inter Pix sandbox credentials (optional; required for live Pix demo)
+- Node.js ≥ 20
+- Free Hedera Testnet account → [portal.hedera.com](https://portal.hedera.com) (ED25519 keypair, grab from portal)
 
-### Install
+### 1 — Clone and install
 
 ```bash
 git clone https://github.com/YOUR_ORG/pixport.git
 cd pixport
 npm install
 cp .env.example .env
-# Fill in HEDERA_OPERATOR_ID, HEDERA_OPERATOR_KEY, and World ID vars
 ```
 
-### Environment Variables
+### 2 — Fill in `.env` (two lines for the demo)
 
-See [`.env.example`](./.env.example) for all required variables. Never commit `.env`.
-
-```
-HEDERA_NETWORK=testnet
-HEDERA_OPERATOR_ID=0.0.XXXXXXX
-HEDERA_OPERATOR_KEY=...
-HTS_TOKEN_ID=0.0.XXXXXXX
-HCS_TOPIC_ID=0.0.XXXXXXX
-PIX_CLIENT_ID=...
-PIX_CLIENT_SECRET=...
-```
-
-### Run
+Open `.env` and set your Hedera testnet credentials:
 
 ```bash
-# Start the gateway API
-cd packages/gateway
-npm run dev
-
-# Gateway runs at http://localhost:3001
+HEDERA_OPERATOR_ID=0.0.YOUR_ACCOUNT
+HEDERA_OPERATOR_KEY=302e020100300506032b6570...   # ED25519 DER key from portal
 ```
+
+The HTS token (`0.0.9742957`), HCS topic (`0.0.9742958`), and treasury (`0.0.9742864`) are already pre-filled — they are live on Hedera testnet from our Block 1 deployment. No extra setup needed for the demo.
+
+> Pix production credentials (`PIX_CLIENT_ID`, etc.) are optional — the gateway runs in stub mode without them, generating a synthetic E2E ID.
+
+### 3 — Start everything
+
+```bash
+npm run demo
+```
+
+This single command starts:
+
+| Service | URL | What it does |
+|---------|-----|-------------|
+| Gateway API | <http://localhost:3001> | Express + Hedera (mandate enforcement, BR Code decode, HCS audit) |
+| Console UI | <http://localhost:3000> | Next.js single-page demo (mandate flow + live HCS trail) |
+
+Open **<http://localhost:3000>** in your browser.
+
+---
+
+## Smoke Test — APPROVE + RECUSA in 2 minutes
+
+> **Testnet required**: both flows hit the live Hedera testnet Mirror Node.
+> Your `HEDERA_OPERATOR_ID` + `HEDERA_OPERATOR_KEY` must be set in `.env`.
+
+### Flow A — APPROVED payment
+
+1. In **Step 1 (Create Mandate)**: click **"Demo key"** and **"Demo account"**, enter `500.00` as Max Amount, click **Create**
+   - A mandate ID appears with status `APPROVED` and an HCS sequence number
+2. In **Step 2 (Execute Payment)**: click **"Sample"** to fill the BR Code, enter the same payer account, enter `10.00` as Amount, paste the mandate ID, click **▶ Pay**
+   - Expected result: green `APPROVED` badge + `Payment authorized and executed` + HCS sequence number + HashScan link
+3. The **HCS Audit Trail** at the bottom auto-refreshes and shows both the `mandate_created` and `payment_approved` events
+
+### Flow B — RECUSA (allowance exceeded)
+
+1. Create a new mandate with Max Amount `1.00` (very small)
+2. In Step 2: use the same BR Code + payer + mandate ID, enter `9999.00` as Amount, click **▶ Pay**
+   - Expected result: red `REJECTED` badge + `Requested 9999.00 BRL exceeds remaining allowance` or `No allowance found for spender`
+   - HCS log shows `payment_rejected` with reason `allowance_exceeded`
+
+> The RECUSA is enforced by the Hedera ledger via HIP-336: the Mirror Node returns zero allowance for accounts that have not been granted one, so the gateway rejects before Pix is ever called.
+
+---
+
+## Setup — Advanced / Re-deploy
 
 ### Key Scripts
 
 ```bash
-npm run setup        # Create HTS token + HCS topic on testnet
-npm run allowance    # Full HIP-336 demo: approve → transfer → RECUSA
+npm run demo          # Start gateway + console together (ONE command)
+npm run setup        # Re-create HTS token + HCS topic on testnet
+npm run allowance    # HIP-336 demo: approve → transfer → RECUSA
 npm run scheduled    # Scheduled Transaction (agentic payment demo)
 npm test             # Run unit tests
 ```

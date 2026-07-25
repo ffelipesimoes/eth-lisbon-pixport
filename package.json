@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "demo": "bash scripts/demo.sh",
     "build": "npm run build --workspaces",
     "dev": "npm run dev --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

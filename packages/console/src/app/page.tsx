@@ -48,6 +48,9 @@ export default function ConsolePage() {
   const [mandateError, setMandateError] = useState<string | null>(null);
   const [loadingMandate, setLoadingMandate] = useState(false);
 
+  // ── Gateway health ───────────────────────────────────────────────────────
+  const [gatewayOffline, setGatewayOffline] = useState(false);
+
   // ── HCS audit ────────────────────────────────────────────────────────────
   const [hcsEntries, setHcsEntries] = useState<HcsEntry[]>([]);
   const [hcsError, setHcsError] = useState<string | null>(null);
@@ -61,8 +64,15 @@ export default function ConsolePage() {
       const data = await fetchHcsAudit(10);
       setHcsEntries(data);
       setLastHcsRefresh(new Date());
+      setGatewayOffline(false);
     } catch (err) {
-      setHcsError(err instanceof Error ? err.message : "Unknown error");
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      if (msg.includes("Gateway offline")) {
+        setGatewayOffline(true);
+        setHcsError(null);
+      } else {
+        setHcsError(msg);
+      }
     } finally {
       setLoadingHcs(false);
     }
@@ -141,6 +151,18 @@ export default function ConsolePage() {
         <h1>PIXPORT Console</h1>
         <p>Hedera mandate layer for Pix payments — Testnet · HCS topic {HCS_TOPIC_ID}</p>
       </header>
+
+      {gatewayOffline && (
+        <div className="card" style={{ borderColor: "#f59e0b", background: "#1c1007" }}>
+          <p style={{ color: "#f59e0b", fontWeight: 600 }}>
+            ⚠ Gateway offline
+          </p>
+          <p style={{ color: "#94a3b8", fontSize: "0.85rem", marginTop: "0.4rem" }}>
+            Run <code style={{ color: "#fbbf24" }}>npm run demo</code> in the project root to start the gateway on port 3001.
+            The console will reconnect automatically.
+          </p>
+        </div>
+      )}
 
       {/* ── STEP 1: Create Mandate ─────────────────────────────────────── */}
       <div className="card">
