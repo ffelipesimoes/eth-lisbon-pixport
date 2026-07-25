@@ -106,7 +106,7 @@ Dev path and user flow documented in [WORLD-ID-DOCS.md](./WORLD-ID-DOCS.md) (com
 | Spender transfers 300 EURC within allowance | ✅ `SUCCESS` | [View](https://hashscan.io/testnet/transaction/0.0.9743531-1784978497.572441319) |
 | **RECUSA: 400 EURC exceeds 200 remaining** | ❌ `AMOUNT_EXCEEDS_ALLOWANCE` | [**View ← README**](https://hashscan.io/testnet/transaction/0.0.9743531-1784978501.389600418) |
 | HCS mandate event logged | ✅ `SUCCESS` | [View](https://hashscan.io/testnet/transaction/0.0.9742864-1784978503.777535015) |
-| Scheduled Transaction (agentic) | ✅ `SUCCESS` | `TBD — run npm run scheduled` |
+| Scheduled Transaction (agentic) | ✅ `AUTO-EXECUTED` | [Create TX](https://hashscan.io/testnet/transaction/0.0.9742864-1784978677.267041555) · [Schedule](https://hashscan.io/testnet/schedule/0.0.9743558) |
 
 ### Pix Live Payment
 
@@ -114,7 +114,7 @@ Dev path and user flow documented in [WORLD-ID-DOCS.md](./WORLD-ID-DOCS.md) (com
 |--------|--------|--------|---------|
 | Real Pix payment — Banco Inter | R$0.01 | ✅ Paid | Screenshot TBD |
 
-**Total testnet transactions**: `9+` _(updated continuously by HederaEngineer)_
+**Total testnet transactions**: `11+` _(Block 1 complete — updated continuously by HederaEngineer)_
 
 ---
 
