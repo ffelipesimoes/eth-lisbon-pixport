@@ -5,13 +5,12 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "predev": "npx tsc -p ../hedera/tsconfig.module.json",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run"
   },
   "dependencies": {
-    "@pixport/hedera": "*",
+    "@hashgraph/sdk": "^2.81.0",
     "express": "^4.22.2",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
