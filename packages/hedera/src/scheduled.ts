@@ -58,18 +58,34 @@ async function main() {
   console.log(`     Create TX:   ${hashscanTx(scheduleTxId)}`);
   console.log(`     HashScan:    https://hashscan.io/testnet/schedule/${scheduleId}`);
 
-  // Sign to trigger execution immediately (all required signatures satisfied)
+  // Attempt to sign — the schedule may have already auto-executed on creation
+  // if the only required signer (operator) already signed the ScheduleCreateTransaction.
   console.log("\nSigning scheduled transaction to trigger execution...");
-  const signTx = await new ScheduleSignTransaction()
-    .setScheduleId(scheduleId)
-    .setMaxTransactionFee(new Hbar(5))
-    .execute(client);
+  let signTxId = "";
+  try {
+    const signTx = await new ScheduleSignTransaction()
+      .setScheduleId(scheduleId)
+      .setMaxTransactionFee(new Hbar(5))
+      .execute(client);
 
-  const signReceipt = await signTx.getReceipt(client);
-  const signTxId = signTx.transactionId.toString();
-
-  console.log(`  ✅ Schedule signed and executed: ${signReceipt.status}`);
-  console.log(`     Sign TX:     ${hashscanTx(signTxId)}`);
+    const signReceipt = await signTx.getReceipt(client);
+    signTxId = signTx.transactionId.toString();
+    console.log(`  ✅ Schedule signed and executed: ${signReceipt.status}`);
+    console.log(`     Sign TX:     ${hashscanTx(signTxId)}`);
+  } catch (err: unknown) {
+    // SCHEDULE_ALREADY_EXECUTED means the inner TX executed at create-time
+    // (operator signed the create TX, satisfying all signature requirements).
+    // This is a valid success — the schedule ran, just instantly.
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (errMsg.includes("SCHEDULE_ALREADY_EXECUTED")) {
+      const txMatch = errMsg.match(/\d+\.\d+\.\d+@\d+\.\d+/);
+      if (txMatch) signTxId = txMatch[0];
+      console.log(`  ✅ Schedule auto-executed at creation (operator signature satisfied all requirements)`);
+      console.log(`     The inner HBAR transfer ran immediately — no separate sign TX needed.`);
+    } else {
+      throw err;
+    }
+  }
 
   client.close();
 
@@ -77,7 +93,7 @@ async function main() {
   console.log("  Scheduled Transaction — HashScan URLs");
   console.log("═══════════════════════════════════════════════════");
   console.log(`  Create:   ${hashscanTx(scheduleTxId)}`);
-  console.log(`  Sign/Exec: ${hashscanTx(signTxId)}`);
+  if (signTxId) console.log(`  Sign/Exec: ${hashscanTx(signTxId)}`);
   console.log(`  Schedule: https://hashscan.io/testnet/schedule/${scheduleId}`);
   console.log("═══════════════════════════════════════════════════");
 }
