@@ -1,5 +1,5 @@
-const GATEWAY_URL =
-  process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://localhost:3001";
+// Gateway is proxied through Next.js rewrites at /api/gateway — no CORS issues.
+const GATEWAY_URL = "/api/gateway";
 
 export interface MandateStatus {
   mandateId: string;
@@ -30,14 +30,12 @@ export interface PayResult {
   decidedAt: string;
 }
 
-/** Fetch latest mandate status from the gateway. */
 export async function fetchMandateStatus(mandateId: string): Promise<MandateStatus> {
   const res = await fetch(`${GATEWAY_URL}/mandates/${mandateId}`);
   if (!res.ok) throw new Error(`Gateway error: ${res.status}`);
   return res.json() as Promise<MandateStatus>;
 }
 
-/** Create a new mandate. */
 export async function createMandate(body: {
   payeePixKey: string;
   payerAccountId: string;
@@ -56,7 +54,6 @@ export async function createMandate(body: {
   return res.json() as Promise<MandateStatus>;
 }
 
-/** Execute a Pix payment via POST /pay. */
 export async function executePay(body: {
   brCode: string;
   payerAccountId: string;
@@ -68,11 +65,9 @@ export async function executePay(body: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = (await res.json()) as PayResult;
-  return data;
+  return res.json() as Promise<PayResult>;
 }
 
-/** Fetch the last N entries from the HCS audit trail. */
 export async function fetchHcsAudit(limit = 10): Promise<HcsEntry[]> {
   const res = await fetch(`${GATEWAY_URL}/audit?limit=${limit}`);
   if (!res.ok) throw new Error(`Gateway error: ${res.status}`);
