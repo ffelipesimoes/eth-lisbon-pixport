@@ -3,9 +3,9 @@
 > **Prize track:** World Identity Check Beta — **formal test-documentation deliverable** (two parts: dev feedback + user feedback).
 > **Product proof (separate doc):** [docs/WORLD-IDENTITY-CHECK.md](./WORLD-IDENTITY-CHECK.md) — flows, screenshots, reproduce checklist.
 > **Owner:** WorldEngineer · **Status:** Part 1 (dev feedback) **complete** · Part 2 (user feedback) **pending venue sessions** — collection protocol ready, recruiting tracked in [VALIDATION.md](../VALIDATION.md).
-> **Last updated:** 2026-07-25
+> **Last updated:** 2026-07-25 (evening — console widget + gateway verify endpoint landed, D7/D8 resolved)
 
-This report is the test record for PIXPORT's use of **World Identity Check (Beta)**: server-side verification of `orb`/`device` proofs via `verifyCloudProof()` (`@worldcoin/idkit-core/backend`, Cloud API v2), where the Identity Check result sets the payer's HIP-336 allowance tier (orb → HIGH 1,000,000 units · device → MEDIUM 100,000 units · none → ZERO/reject). Implementation: [`packages/agent/src/worldid.ts`](../packages/agent/src/worldid.ts).
+This report is the test record for PIXPORT's use of **World Identity Check (Beta)**: server-side verification of `orb`/`device` proofs via `verifyCloudProof()` (`@worldcoin/idkit-core/backend`, Cloud API v2), where the Identity Check result sets the payer's HIP-336 allowance tier (orb → HIGH 1,000,000 units · device → MEDIUM 100,000 units · none → ZERO/reject). Implementations: [`packages/agent/src/worldid.ts`](../packages/agent/src/worldid.ts) (agent/CLI path) and [`packages/gateway/src/worldid/index.ts`](../packages/gateway/src/worldid/index.ts) + [`packages/gateway/src/routes/worldid.ts`](../packages/gateway/src/routes/worldid.ts) (console/HTTP path — same semantics, exposed as `GET /worldid/config` + `POST /worldid/verify`); browser side: IDKit widget in [`packages/console/src/app/page.tsx`](../packages/console/src/app/page.tsx).
 
 ---
 
@@ -99,19 +99,29 @@ WORLD_MOCK=true GATEWAY_MOCK=true ALLOWANCE_MOCK=true npm run demo -w packages/a
 **Impact:** the single largest setup cost in the integration; also a demo-robustness risk (live verify on stage depends on portal reachability) — mitigated by the documented fallback flag (see "Stage fallback" below).
 **Suggestion:** link the simulator directly from the portal action page and from `verifyCloudProof` docs; consider a signed "test proof" the SDK can emit for staging apps.
 
-### D7 — `idkit-core` is imported but not declared (transitive-only)
+### D7 — `idkit-core` is imported but not declared (transitive-only) — ✅ RESOLVED
 
 **Friction:** `packages/agent` imports `@worldcoin/idkit-core/backend` directly, but only declares `@worldcoin/idkit-standalone` in `package.json`; `idkit-core@2.1.0` resolves only via hoisting from `idkit-standalone` → `@worldcoin/idkit@2.4.2` → `idkit-core@2.1.0` (see `package-lock.json` / `yarn.lock`).
 
 **Impact:** works under npm/yarn hoisting; breaks under strict dependency isolation (pnpm, PnP). Latent build fragility, filed for cleanup.
 **Suggestion (to World):** promote `idkit-core/backend` to a documented standalone entry point for server-side-only integrators who don't need the widget.
 
-### D8 — Widget docs assume a registered app; staging widget behavior undocumented
+**Resolution (2026-07-25, PIX-24):** `@worldcoin/idkit-core@^2.1.0` is now a **direct declared dependency** of both `@pixport/agent` and `@pixport/gateway`. `npm ls @worldcoin/idkit-core` shows `2.1.0 deduped` — identical resolved version as the transitive path, so zero behavior change; the declaration removes the pnpm/PnP fragility.
+
+### D8 — Widget docs assume a registered app; staging widget behavior undocumented — ✅ RESOLVED (widget shipped)
 
 **Friction:** all frontend material assumes a production `app_id`. There is no documented guidance for rendering the IDKit widget against a staging app during development, so our console currently has **no widget** (`packages/console/package.json` has no `@worldcoin/idkit*` dependency) and the user path is exercised via CLI + simulator instead. Closing this is tracked as a follow-up (console "Verify with World" button → proof → backend verify).
 
 **Impact:** the browser user journey can't be demoed end-to-end without portal registration; forces CLI-only user testing at the venue.
 **Suggestion:** a staging quickstart for the React widget (`<IDKitWidget app_id="app_staging_…">` + simulator QR) would close the gap.
+
+**Resolution (2026-07-25, PIX-24):** the widget is now in the console and the browser journey exists end-to-end:
+
+- `packages/console` declares `@worldcoin/idkit@^2.4.2`; the payment flow has a **Verify with World** step (`<IDKitWidget app_id action="pixport-payment" signal={payerAccountId} verification_level="orb">`) whose `onSuccess` posts the proof to the backend — the client is never trusted.
+- New gateway endpoints: `GET /worldid/config` (widget config: app_id/action/env/mock — single source of truth, console never hardcodes it) and `POST /worldid/verify` (server-side `verifyCloudProof()` → tier; outcome logged to HCS as `identity_check`, best-effort).
+- The resolved tier is displayed **next to the payment cap** and gates the Pay button: orb → HIGH R$ 10.000,00 · device → MEDIUM R$ 1.000,00 · unverified → Pay blocked; amount above the tier cap blocks with an explicit message. Re-verifying at a different level changes the cap in place — the behavior change is observable in the UI, not a static badge.
+- Verified in this workspace: production `next build` clean; live smoke of `POST /worldid/verify` (mock mode) returning orb→`10000.00` and device→`1000.00`; 400 on malformed body; 503 with actionable message when `WORLD_APP_ID` is unset and mock is off; SSR render of the fallback UI confirmed.
+- The remaining gap (real staging `app_id` from the Developer Portal) is tracked separately (PIX-25) — the staging quickstart suggestion to World stands.
 
 ### Setup timeline (real, from git history)
 
@@ -121,6 +131,7 @@ WORLD_MOCK=true GATEWAY_MOCK=true ALLOWANCE_MOCK=true npm run demo -w packages/a
 | 13:46 | Explicit Identity Check gate + per-payment tier enforcement | `7f9744c` |
 | 13:51 | Demo console (HCS trail; no widget yet) | `5af2ca8` |
 | 13:55–13:56 | Judge docs + terminal screenshots | `d9b47dc`, `5e71f55` |
+| 19:20 | Console IDKit widget + gateway `/worldid/verify` + stage fallback flag (D7/D8 resolved; rebased onto wizard console) | `18bd0b3` |
 
 Backend verification + four-case demo + judge-facing docs landed same-day; the blocking prerequisite throughout was portal registration (D3/D6), still pending for a real (non-mock) proof run.
 
@@ -196,10 +207,11 @@ Net effect: the system learns "a unique Orb-verified human controls this payer a
 
 | Mechanism | Status | Detail |
 |---|---|---|
-| `WORLD_MOCK=true` | ✅ implemented + documented | Skips the Cloud API and trusts the proof's `verification_level`. Dev/judge use only; guard refuses start with placeholder `app_id` otherwise. (Spec named this `SKIP_WORLDID`; implemented as `WORLD_MOCK` — same function.) |
-| Pre-applied tier via env | ✅ implemented | `TIER_ORB_MAX` / `TIER_DEVICE_MAX` / `TIER_UNVERIFIED_MAX` set tier caps without redeploy. |
-| One-command offline demo | ✅ verified 2026-07-25, exit 0 | `WORLD_MOCK=true GATEWAY_MOCK=true ALLOWANCE_MOCK=true npm run demo -w packages/agent` → 1 APPROVE + 3 REJECT ([captured](./world-identity-check/e2e-demo-terminal.txt)). |
-| Console tier fallback | ⏳ follow-up filed | Console currently shows decisions but has no tier selector/widget; stage plan is CLI demo + console HCS trail. |
+| `WORLD_MOCK=true` | ✅ implemented + documented | Skips the Cloud API and trusts the proof's `verification_level`. Dev/judge use only; guard refuses start with placeholder `app_id` otherwise. (Spec named this `SKIP_WORLDID`; implemented as `WORLD_MOCK` — same function.) Applies to **both** verify paths: agent (`packages/agent`) and gateway (`POST /worldid/verify`). |
+| `NEXT_PUBLIC_SKIP_WORLDID=true` (console) | ✅ implemented 2026-07-25 (PIX-24) | Console-side alias of the spec's `SKIP_WORLDID`: replaces the IDKit widget with a **pre-applied tier selector** (orb → R$ 10.000 / device → R$ 1.000) that posts a mock proof to `POST /worldid/verify`. The demo never depends on portal/simulator reachability. **Requires `WORLD_MOCK=true` on the gateway** — otherwise the mock proof is honestly rejected by the real `verifyCloudProof` call. Both flags are in `.env.example` with safe defaults (`false`); `npm run demo` exports them from `.env` to both processes. |
+| Pre-applied tier via env | ✅ implemented | `TIER_ORB_MAX` / `TIER_DEVICE_MAX` / `TIER_UNVERIFIED_MAX` set tier caps without redeploy (honored by agent and gateway alike). |
+| One-command offline demo | ✅ verified 2026-07-25, exit 0 | `WORLD_MOCK=true GATEWAY_MOCK=true ALLOWANCE_MOCK=true npm run demo -w packages/agent` → 1 APPROVE + 3 REJECT ([captured](./world-identity-check/e2e-demo-terminal.txt)). Re-verified after the PIX-24 dependency changes — same result. |
+| Console tier fallback | ✅ implemented 2026-07-25 (PIX-24) | Selector + mock proof + backend-tier display shipped (see `NEXT_PUBLIC_SKIP_WORLDID` row above); SSR render of the fallback UI verified. Stage plan is unchanged: live widget if the portal app exists (PIX-25), fallback selector otherwise — plus CLI demo as second fallback. |
 
 ---
 
@@ -207,7 +219,7 @@ Net effect: the system learns "a unique Orb-verified human controls this payer a
 
 | Gap | Owner | Tracking |
 |---|---|---|
-| IDKit widget in console ("Verify with World" → backend verify → tier badge) | WorldEngineer | Paperclip child issue of PIX-23 |
-| Developer Portal app/action registration + first real (non-mock) staging proof e2e | CEO/Felipe (portal sign-in) → WorldEngineer (run + capture) | Paperclip child issue of PIX-23 |
+| ~~IDKit widget in console ("Verify with World" → backend verify → tier badge)~~ | WorldEngineer | ✅ shipped 2026-07-25 (PIX-24) — see D8 resolution |
+| Developer Portal app/action registration + first real (non-mock) staging proof e2e | CEO/Felipe (portal sign-in) → WorldEngineer (run + capture) | Paperclip child issue of PIX-23 (PIX-25) |
 | Fill Part 2 with ≥2–3 real venue sessions | WorldEngineer (fill) · CEO/Felipe (recruit) | This doc + [VALIDATION.md](../VALIDATION.md) |
-| Declare `@worldcoin/idkit-core` as a direct dependency (D7) | WorldEngineer | bundled with console widget work |
+| ~~Declare `@worldcoin/idkit-core` as a direct dependency (D7)~~ | WorldEngineer | ✅ shipped 2026-07-25 (PIX-24) — see D7 resolution |
