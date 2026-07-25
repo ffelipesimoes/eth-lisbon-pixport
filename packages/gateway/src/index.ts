@@ -28,8 +28,10 @@ app.get("/health", (_req, res) => {
 
 app.use("/", router);
 
-app.listen(port, () => {
-  logger.info(`PIXPORT gateway listening on port ${port}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(port, () => {
+    logger.info(`PIXPORT gateway listening on port ${port}`);
+  });
+}
 
 export default app;
