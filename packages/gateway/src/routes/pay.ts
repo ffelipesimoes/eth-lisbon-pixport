@@ -3,6 +3,8 @@ import { decodeBrCode, BrCodeDecodeError } from "../brcode/index.js";
 import { isAllowed } from "../allowlist/index.js";
 import { checkAllowance, logDecisionToHcs } from "../hedera/index.js";
 import { getMandateRecord } from "../mandates/store.js";
+import { EfiPixAdapter } from "../pix/efiAdapter.js";
+import type { PixCredentials } from "../pix/types.js";
 import { randomUUID } from "crypto";
 
 export interface PayBody {
@@ -243,9 +245,8 @@ async function logDecisionSafe(
 }
 
 /**
- * Execute a Pix payment via the payout adapter.
- * Reads credentials from env via PIX_* variables.
- * Throws if credentials are missing or PSP rejects.
+ * Execute a Pix payment via EfiPixAdapter.
+ * Reads credentials from PIX_* env vars — throws if unconfigured (demo fallback in caller).
  */
 async function executePix(params: {
   destinationKey: string;
@@ -253,18 +254,30 @@ async function executePix(params: {
   txid: string;
   description?: string;
 }): Promise<string> {
-  const apiBaseUrl = process.env.PIX_API_BASE_URL;
   const clientId = process.env.PIX_CLIENT_ID;
   const clientSecret = process.env.PIX_CLIENT_SECRET;
 
-  if (!apiBaseUrl || !clientId || !clientSecret ||
-      clientId === "your-client-id-here" || clientSecret === "your-client-secret-here") {
-    throw new Error("Pix credentials not configured — running in stub mode");
+  if (
+    !clientId ||
+    !clientSecret ||
+    clientId === "your-client-id-here" ||
+    clientSecret === "your-client-secret-here"
+  ) {
+    throw new Error("Pix credentials not configured");
   }
 
-  // Real PSP call goes here when credentials are plugged in.
-  // Credential fields: PIX_API_BASE_URL, PIX_CLIENT_ID, PIX_CLIENT_SECRET, PIX_CERT_PATH, PIX_KEY_PATH, PIX_KEY
-  throw new Error("Pix PSP adapter not yet implemented — plug in credentials from .env");
+  const creds: PixCredentials = {
+    apiBaseUrl: process.env.PIX_API_BASE_URL ?? "",
+    clientId,
+    clientSecret,
+    certPath: process.env.PIX_CERT_PATH ?? "",
+    keyPath: process.env.PIX_KEY_PATH ?? "",
+    pixKey: process.env.PIX_KEY ?? "",
+  };
+
+  const adapter = new EfiPixAdapter(creds);
+  const result = await adapter.pay(params);
+  return result.endToEndId;
 }
 
 export default router;
