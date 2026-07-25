@@ -48,18 +48,19 @@ export function brlToCentavos(brl: string): number {
 /** Infer Bitpag pixKeyType from the destination key value. */
 export function detectPixKeyType(
   key: string,
-): "CPF" | "CNPJ" | "EMAIL" | "PHONE" | "EVP" {
-  // UUID random key (EVP)
+): "CPF" | "CNPJ" | "EMAIL" | "PHONE" | "RANDOM" | "QRCODE" {
+  // UUID random key (EVP / RANDOM)
   if (
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)
   ) {
-    return "EVP";
+    return "RANDOM";
   }
   if (key.includes("@")) return "EMAIL";
   const digits = key.replace(/\D/g, "");
   if (digits.length === 14) return "CNPJ";
   if (digits.length === 11) return "CPF";
-  return "PHONE";
+  if (digits.length >= 10 && digits.length <= 13) return "PHONE";
+  return "RANDOM";
 }
 
 // ── Adapter ───────────────────────────────────────────────────────────────────
