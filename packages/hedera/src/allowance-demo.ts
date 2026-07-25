@@ -201,7 +201,7 @@ async function main() {
 
       // ── Step 5: RECUSA — Transfer 400 EURC EXCEEDS remaining 200 ─────────
       console.log("\nStep 5/5 — RECUSA: Spender tries 400 EURC (exceeds 200 remaining)...");
-      console.log("           Expected: SPENDER_DOES_NOT_HAVE_ALLOWANCE");
+      console.log("           Expected: AMOUNT_EXCEEDS_ALLOWANCE (or SPENDER_DOES_NOT_HAVE_ALLOWANCE)");
       const RECUSA_AMOUNT = 40000n; // 400.00 EURC — exceeds remaining 200
 
       let recusaTxId = "";
@@ -225,16 +225,23 @@ async function main() {
 
         const recusaResponse = await recusaTx.execute(recusaClient);
 
-        // This getReceipt() call will throw with SPENDER_DOES_NOT_HAVE_ALLOWANCE
+        // getReceipt() throws when the network rejects the tx
         const recusaReceipt = await recusaResponse.getReceipt(recusaClient);
         recusaTxId = recusaResponse.transactionId.toString();
         recusaStatus = recusaReceipt.status.toString();
         recusaClient.close();
       } catch (err: unknown) {
-        // Expected: ReceiptStatusError with SPENDER_DOES_NOT_HAVE_ALLOWANCE
+        // Both statuses are valid RECUSA outcomes:
+        //   AMOUNT_EXCEEDS_ALLOWANCE  — spender has allowance but requested > remaining
+        //   SPENDER_DOES_NOT_HAVE_ALLOWANCE — spender has no allowance at all
         const errMsg = err instanceof Error ? err.message : String(err);
-        if (errMsg.includes("SPENDER_DOES_NOT_HAVE_ALLOWANCE")) {
-          recusaStatus = "SPENDER_DOES_NOT_HAVE_ALLOWANCE";
+        const isRecusa =
+          errMsg.includes("AMOUNT_EXCEEDS_ALLOWANCE") ||
+          errMsg.includes("SPENDER_DOES_NOT_HAVE_ALLOWANCE");
+        if (isRecusa) {
+          recusaStatus = errMsg.includes("AMOUNT_EXCEEDS_ALLOWANCE")
+            ? "AMOUNT_EXCEEDS_ALLOWANCE"
+            : "SPENDER_DOES_NOT_HAVE_ALLOWANCE";
           // Extract transaction ID from error message
           const txMatch = errMsg.match(/\d+\.\d+\.\d+@\d+\.\d+/);
           if (txMatch) {
