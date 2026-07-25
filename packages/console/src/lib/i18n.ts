@@ -105,6 +105,13 @@ export const translations = {
     step3Badge: "⚡ Target Track: Real Pix Payout + On-Chain RECUSA (AMOUNT_EXCEEDS_ALLOWANCE)",
     step4Badge: "📜 Target Track: Hedera Consensus Service (Topic 0.0.9742958) + Mirror Node REST",
 
+    // SDK Function Labels
+    sdkLabel: "🛠️ Executed SDK & Protocol Calls:",
+    step1Sdk: "• @worldcoin/idkit-core/backend verifyCloudProof() → ZK proof validation & tier resolution",
+    step2Sdk: "• @hashgraph/sdk AccountAllowanceApproveTransaction() → On-chain HIP-336 token allowance approval",
+    step3Sdk: "• Hedera Mirror Node REST (/api/v1/accounts/.../allowances) + TransferTransaction()",
+    step4Sdk: "• @hashgraph/sdk TopicMessageSubmitTransaction() → HCS Topic 0.0.9742958 audit stream",
+
     // Landing Page / Copywriting / OTC Comparison
     navOverview: "🚀 Value Prop & OTC Impact",
     navWizard: "⚡ Interactive Mandate Wizard",
@@ -251,6 +258,13 @@ export const translations = {
     step2Badge: "🪙 Trilha Alvo: HTS Token (0.0.9742957) + HIP-336 Native Allowance (Sem Solidity)",
     step3Badge: "⚡ Trilha Alvo: Liquidação Pix + RECUSA On-Chain (AMOUNT_EXCEEDS_ALLOWANCE)",
     step4Badge: "📜 Trilha Alvo: Hedera Consensus Service (Tópico 0.0.9742958) + Mirror Node REST",
+
+    // SDK Function Labels
+    sdkLabel: "🛠️ Funções do Hedera SDK & Protocolo Chamadas:",
+    step1Sdk: "• @worldcoin/idkit-core/backend verifyCloudProof() → Validação da prova ZK e definição de Tier",
+    step2Sdk: "• @hashgraph/sdk AccountAllowanceApproveTransaction() → Aprovação de allowance de token HIP-336 on-chain",
+    step3Sdk: "• Hedera Mirror Node REST (/api/v1/accounts/.../allowances) + TransferTransaction()",
+    step4Sdk: "• @hashgraph/sdk TopicMessageSubmitTransaction() → Stream de auditoria no Tópico HCS 0.0.9742958",
 
     // Landing Page / Copywriting / OTC Comparison
     navOverview: "🚀 Proposta de Valor & Impacto OTC",

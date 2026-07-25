@@ -648,8 +648,9 @@ export default function ConsolePage() {
                 </div>
               </div>
 
-              <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(168, 85, 247, 0.1)", border: "1px solid rgba(168, 85, 247, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#f0abfc", fontWeight: 600 }}>
-                {t.step1Badge}
+              <div style={{ marginTop: "1.25rem", padding: "0.65rem 0.85rem", background: "rgba(168, 85, 247, 0.1)", border: "1px solid rgba(168, 85, 247, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#f0abfc" }}>
+                <div style={{ fontWeight: 700, marginBottom: "0.25rem" }}>{t.step1Badge}</div>
+                <div style={{ fontFamily: "monospace", fontSize: "0.74rem", opacity: 0.9 }}>{t.step1Sdk}</div>
               </div>
 
               <div className="wizard-nav">
@@ -751,8 +752,9 @@ export default function ConsolePage() {
                 </div>
               )}
 
-              <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#93c5fd", fontWeight: 600 }}>
-                {t.step2Badge}
+              <div style={{ marginTop: "1.25rem", padding: "0.65rem 0.85rem", background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#93c5fd" }}>
+                <div style={{ fontWeight: 700, marginBottom: "0.25rem" }}>{t.step2Badge}</div>
+                <div style={{ fontFamily: "monospace", fontSize: "0.74rem", opacity: 0.9 }}>{t.step2Sdk}</div>
               </div>
 
               <div className="wizard-nav">
@@ -859,8 +861,9 @@ export default function ConsolePage() {
                 </div>
               )}
 
-              <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(52, 211, 153, 0.1)", border: "1px solid rgba(52, 211, 153, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#6ee7b7", fontWeight: 600 }}>
-                {t.step3Badge}
+              <div style={{ marginTop: "1.25rem", padding: "0.65rem 0.85rem", background: "rgba(52, 211, 153, 0.1)", border: "1px solid rgba(52, 211, 153, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#6ee7b7" }}>
+                <div style={{ fontWeight: 700, marginBottom: "0.25rem" }}>{t.step3Badge}</div>
+                <div style={{ fontFamily: "monospace", fontSize: "0.74rem", opacity: 0.9 }}>{t.step3Sdk}</div>
               </div>
 
               <div className="wizard-nav">
@@ -936,8 +939,9 @@ export default function ConsolePage() {
                   </div>
                 )}
 
-                <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#fde047", fontWeight: 600 }}>
-                  {t.step4Badge}
+                <div style={{ marginTop: "1.25rem", padding: "0.65rem 0.85rem", background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#fde047" }}>
+                  <div style={{ fontWeight: 700, marginBottom: "0.25rem" }}>{t.step4Badge}</div>
+                  <div style={{ fontFamily: "monospace", fontSize: "0.74rem", opacity: 0.9 }}>{t.step4Sdk}</div>
                 </div>
               </div>
 
