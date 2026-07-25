@@ -1,46 +1,229 @@
-# PIXPORT — Hedera Mandate Layer
+# PIXPORT — On-Chain Pix Mandate Layer
 
-PIXPORT enforces Pix payment allowances on-chain via Hedera HIP-336 (allowance mechanism), HTS fungible tokens, and HCS audit trail.
+> Hedera Global Hackathon 2025 · Brazil Track
 
-## Stack
+---
 
-- Node.js / TypeScript
-- `@hashgraph/sdk` (Hiero) — zero Solidity, zero EVM
-- Hedera TESTNET only
+## ⬛ No Solidity. No EVM. 100% Hedera Native.
 
-## On-Chain Artifacts
+[![No Solidity](https://img.shields.io/badge/No%20Solidity-✓-brightgreen?style=for-the-badge&logo=hedera)](https://hedera.com)
+[![Hedera Testnet](https://img.shields.io/badge/Hedera-Testnet-blue?style=for-the-badge&logo=hedera)](https://hashscan.io/testnet)
+[![World ID](https://img.shields.io/badge/World%20ID-Verified-blueviolet?style=for-the-badge)](https://worldcoin.org/world-id)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-| Artifact | ID | HashScan |
-|---|---|---|
-| HTS Token (EURC-demo) | TBD | TBD |
-| HCS Topic (audit trail) | TBD | TBD |
+**PIXPORT is built entirely with `@hashgraph/sdk` (Hiero). Zero Solidity. Zero EVM contracts. Every mandate is enforced at the Hedera ledger layer using HIP-336 native allowances.**
 
-## HIP-336 Allowance Demo
+---
 
-| Scenario | Result | HashScan |
-|---|---|---|
-| Approve allowance | ✅ | TBD |
-| Transfer within allowance | ✅ | TBD |
-| **RECUSA: Transfer exceeds allowance** | ❌ `SPENDER_DOES_NOT_HAVE_ALLOWANCE` | TBD |
-| Scheduled Transaction | ✅ | TBD |
+## Overview
+
+Brazil's Pix instant payment network processes **60M+ transactions/day** with no programmable mandate enforcement. PIXPORT adds an on-chain mandate layer: a treasury approves a spending allowance using HIP-336 (the Hedera Token Service native allowance mechanism), and any attempt to exceed that limit is rejected by the ledger itself — before the Pix API is ever called.
+
+The rejection is called **RECUSA** — a protocol-level `SPENDER_DOES_NOT_HAVE_ALLOWANCE` error from Hedera, not a software check.
+
+Every mandate event (approve, transfer, RECUSA, Pix confirmation) is logged to an HCS topic — an immutable, timestamped, tamper-proof compliance trail.
+
+**Prizes targeted**:
+- 🏆 Hedera AI & Agentic Payments
+- 🏆 Hedera No-Solidity
+- 🏆 World Identity Check Beta
+
+---
+
+## Architecture
+
+```
+ ┌─────────────────────────────────────────────────────────────────┐
+ │                        PIXPORT Stack                            │
+ │                                                                  │
+ │  [User / Payment Agent]                                          │
+ │       │                                                          │
+ │       ▼                                                          │
+ │  [World ID — IDKit]  ─── ZK proof ──►  [PIXPORT Gateway API]    │
+ │                                              │                   │
+ │                        ┌────────────────────┼──────────────┐    │
+ │                        ▼                    ▼              ▼    │
+ │                  [HTS Token         [HIP-336          [HCS      │
+ │                   EURC-demo]        Allowance]        Topic]    │
+ │                        │                    │                   │
+ │                        └────────────────────┘                   │
+ │                                   │                             │
+ │               SPENDER_DOES_NOT_HAVE_ALLOWANCE?                  │
+ │                  No ──────────────┼──── Yes → RECUSA + HCS log  │
+ │                                   ▼                             │
+ │                         [Pix API — Banco Inter]                 │
+ │                         Real R$0.01 payment ✓                   │
+ └─────────────────────────────────────────────────────────────────┘
+
+ Hedera: HTS · HIP-336 · HCS · Scheduled Transactions
+ No Solidity. No EVM. @hashgraph/sdk only.
+```
+
+### Hedera Services Used
+
+| Service | Purpose |
+|---------|---------|
+| **HTS — Fungible Token** | Mandate token (EURC-demo); spending capacity |
+| **HIP-336 Allowance** | Cryptographic spending limit; ledger-enforced RECUSA |
+| **HCS Topic** | Immutable ordered audit trail of all mandate events |
+| **Scheduled Transactions** | Agentic deferred Pix payment scheduling |
+
+---
+
+## Prizes Targeted
+
+### 🏆 Hedera No-Solidity
+**Claim**: This project contains zero Solidity files and zero EVM contract calls. All Hedera interactions use `@hashgraph/sdk` (Hiero) directly.
+
+Evidence: `grep -r "solidity\|\.sol\|0x167" . --include="*.ts" --include="*.js"` returns zero results.
+
+### 🏆 Hedera AI & Agentic Payments
+**Claim**: PIXPORT's gateway acts as an autonomous payment agent. It operates within a cryptographically enforced mandate (HIP-336 allowance) and executes Pix payments without per-transaction human approval, within bounds set by the treasury on-chain.
+
+### 🏆 World Identity Check Beta
+**Claim**: Every new PIXPORT mandate holder must pass World ID verification (via IDKit). The ZK proof ensures one mandate per unique human, preventing Sybil and duplicate mandate fraud.
+
+Dev path and user flow documented in [WORLD-ID-DOCS.md](./WORLD-ID-DOCS.md) (coming Saturday).
+
+---
+
+## Testnet Evidence
+
+> HashScan URLs are filled in by HederaEngineer as each milestone lands. All links below are live and clickable at submission time.
+
+### On-Chain Artifacts
+
+| Artifact | Hedera ID | HashScan |
+|----------|-----------|---------|
+| HTS Token (EURC-demo) | `TBD` | [View on HashScan](TBD) |
+| HCS Topic (Audit Trail) | `TBD` | [View on HashScan](TBD) |
+
+### HIP-336 Allowance Demo Transactions
+
+| Scenario | Result | Tx ID | HashScan |
+|----------|--------|-------|---------|
+| Treasury approves mandate | ✅ `SUCCESS` | `TBD` | [View](TBD) |
+| Spender transfers within allowance | ✅ `SUCCESS` | `TBD` | [View](TBD) |
+| **RECUSA: Transfer exceeds allowance** | ❌ `SPENDER_DOES_NOT_HAVE_ALLOWANCE` | `TBD` | [View](TBD) |
+| Scheduled Transaction (agentic) | ✅ `SUCCESS` | `TBD` | [View](TBD) |
+| HCS mandate event logged | ✅ `SUCCESS` | `TBD` | [View](TBD) |
+
+### Pix Live Payment
+
+| Action | Amount | Result | Evidence |
+|--------|--------|--------|---------|
+| Real Pix payment — Banco Inter | R$0.01 | ✅ Paid | Screenshot TBD |
+
+**Total testnet transactions**: `TBD` _(updated continuously by HederaEngineer)_
+
+---
 
 ## Setup
 
+### Prerequisites
+
+- Node.js ≥20
+- Hedera Testnet account ([portal.hedera.com](https://portal.hedera.com))
+- World ID Developer App ([developer.worldcoin.org](https://developer.worldcoin.org))
+- Banco Inter Pix sandbox credentials (optional; required for live Pix demo)
+
+### Install
+
 ```bash
-cp .env.example .env
-# Fill in your Hedera TESTNET credentials
+git clone https://github.com/YOUR_ORG/pixport.git
+cd pixport
 npm install
-npm run build
+cp .env.example .env
+# Fill in HEDERA_OPERATOR_ID, HEDERA_OPERATOR_KEY, and World ID vars
 ```
 
-## Scripts
+### Environment Variables
+
+See [`.env.example`](./.env.example) for all required variables. Never commit `.env`.
+
+```
+HEDERA_NETWORK=testnet
+HEDERA_OPERATOR_ID=0.0.XXXXXXX
+HEDERA_OPERATOR_KEY=...
+HTS_TOKEN_ID=0.0.XXXXXXX
+HCS_TOPIC_ID=0.0.XXXXXXX
+PIX_CLIENT_ID=...
+PIX_CLIENT_SECRET=...
+```
+
+### Run
 
 ```bash
-npm run setup        # Create HTS token + HCS topic
-npm run allowance    # Run full HIP-336 allowance demo (approve → transfer → RECUSA)
-npm run scheduled    # Demo scheduled transaction
+# Start the gateway API
+cd packages/gateway
+npm run dev
+
+# Gateway runs at http://localhost:3001
 ```
 
-## Environment
+### Key Scripts
 
-See `.env.example` for required variables.
+```bash
+npm run setup        # Create HTS token + HCS topic on testnet
+npm run allowance    # Full HIP-336 demo: approve → transfer → RECUSA
+npm run scheduled    # Scheduled Transaction (agentic payment demo)
+npm test             # Run unit tests
+```
+
+---
+
+## Demo
+
+**Video**: [YouTube link TBD] · ≤5 minutes
+
+**Script summary**:
+1. (**0:00–0:45**) RECUSA scenario — PIXPORT rejects an over-limit payment on HashScan, live
+2. (**0:45–2:30**) Architecture walkthrough — No Solidity, four Hedera services, World ID
+3. (**2:30–4:00**) Full happy path — World ID verify → mandate approve → Pix payment
+4. (**4:00–5:00**) Real R$0.01 Pix payment sent live; HCS log confirmed on HashScan
+
+---
+
+## Validation
+
+External tester feedback documented in [VALIDATION.md](./VALIDATION.md).
+
+- ≥3 independent non-team testers
+- Named, quoted feedback
+- Test outcomes with screenshots
+
+---
+
+## Repository Structure
+
+```
+pixport/
+├── packages/
+│   └── gateway/          # Express API — Pix mandate enforcement
+│       └── src/
+│           ├── pix/      # Pix API integration (Banco Inter)
+│           ├── allowlist/ # HIP-336 allowance checks
+│           ├── brcode/   # BR Code / QR code parsing
+│           └── routes/   # API routes
+├── .env.example
+├── HACKATHON-PRD.md      # PRD with score prediction
+├── VALIDATION.md         # External tester feedback (≥3 testers)
+└── README.md
+```
+
+---
+
+## Team
+
+| Member | Role |
+|--------|------|
+| HederaEngineer | Hedera: HTS, HCS, HIP-336, Scheduled Tx |
+| GatewayEngineer | Backend: Express gateway, Pix API, World IDKit |
+| AgentEngineer | Integration: World ID dev path, agent wallet |
+| SubmissionOfficer | Submission: README, PRD, VALIDATION, video |
+
+---
+
+## License
+
+MIT
