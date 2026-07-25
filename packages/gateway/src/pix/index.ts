@@ -6,3 +6,4 @@ export type {
 } from "./types.js";
 export { loadPixCredentials } from "./envCredentials.js";
 export { EfiPixAdapter } from "./efiAdapter.js";
+export { BitpagPixAdapter } from "./bitpagAdapter.js";

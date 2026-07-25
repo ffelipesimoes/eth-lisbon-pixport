@@ -3,7 +3,7 @@ import { decodeBrCode, BrCodeDecodeError } from "../brcode/index.js";
 import { isAllowed } from "../allowlist/index.js";
 import { checkAllowance, logDecisionToHcs } from "../hedera/index.js";
 import { getMandateRecord } from "../mandates/store.js";
-import { EfiPixAdapter } from "../pix/efiAdapter.js";
+import { BitpagPixAdapter } from "../pix/bitpagAdapter.js";
 import type { PixCredentials } from "../pix/types.js";
 import { randomUUID } from "crypto";
 
@@ -245,7 +245,7 @@ async function logDecisionSafe(
 }
 
 /**
- * Execute a Pix payment via EfiPixAdapter.
+ * Execute a Pix payment via BitpagPixAdapter.
  * Reads credentials from PIX_* env vars — throws if unconfigured (demo fallback in caller).
  */
 async function executePix(params: {
@@ -256,26 +256,28 @@ async function executePix(params: {
 }): Promise<string> {
   const clientId = process.env.PIX_CLIENT_ID;
   const clientSecret = process.env.PIX_CLIENT_SECRET;
+  const apiKey = process.env.PIX_API_KEY;
 
   if (
     !clientId ||
     !clientSecret ||
+    !apiKey ||
     clientId === "your-client-id-here" ||
-    clientSecret === "your-client-secret-here"
+    apiKey === "your-api-key-here"
   ) {
     throw new Error("Pix credentials not configured");
   }
 
   const creds: PixCredentials = {
-    apiBaseUrl: process.env.PIX_API_BASE_URL ?? "",
+    apiBaseUrl: process.env.PIX_API_BASE_URL ?? "https://api.bitpag.xyz",
     clientId,
     clientSecret,
-    certPath: process.env.PIX_CERT_PATH ?? "",
-    keyPath: process.env.PIX_KEY_PATH ?? "",
+    certPath: "",
+    keyPath: "",
     pixKey: process.env.PIX_KEY ?? "",
   };
 
-  const adapter = new EfiPixAdapter(creds);
+  const adapter = new BitpagPixAdapter(creds, apiKey);
   const result = await adapter.pay(params);
   return result.endToEndId;
 }
