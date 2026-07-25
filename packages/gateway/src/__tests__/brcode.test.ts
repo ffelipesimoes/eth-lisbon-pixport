@@ -5,6 +5,7 @@
  * CRC16 is computed from: everything up to but not including the 4-char checksum.
  */
 
+import { describe, it, expect } from "vitest";
 import { decodeBrCode, BrCodeDecodeError, validateCrc16, crc16 } from "../brcode/index.js";
 
 // ---------------------------------------------------------------------------
