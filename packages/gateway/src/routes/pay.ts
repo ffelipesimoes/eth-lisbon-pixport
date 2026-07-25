@@ -256,14 +256,13 @@ async function executePix(params: {
 }): Promise<string> {
   const clientId = process.env.PIX_CLIENT_ID;
   const clientSecret = process.env.PIX_CLIENT_SECRET;
-  const apiKey = process.env.PIX_API_KEY;
+  const apiKey = process.env.PIX_API_KEY ?? "";
 
   if (
     !clientId ||
     !clientSecret ||
-    !apiKey ||
     clientId === "your-client-id-here" ||
-    apiKey === "your-api-key-here"
+    clientSecret === "your-client-secret-here"
   ) {
     throw new Error("Pix credentials not configured");
   }

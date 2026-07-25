@@ -90,13 +90,17 @@ export class BitpagPixAdapter implements PixPayoutAdapter {
   // ── POST /api/auth — exchange API key + client creds for short-lived JWT ──
 
   private async getAccessToken(): Promise<string> {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
+    if (this.apiKey) {
+      headers["Authorization"] = `Bearer ${this.apiKey}`;
+    }
+
     const result = await this.httpFn(`${this.baseUrl}/api/auth`, {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: {
         client_id: this.creds.clientId,
         client_secret: this.creds.clientSecret,
