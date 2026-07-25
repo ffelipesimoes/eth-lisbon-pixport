@@ -3,12 +3,20 @@
   "version": "0.1.0",
   "description": "PIXPORT Hedera on-chain setup: HTS token, HCS topic, HIP-336 allowances, Scheduled Transactions",
   "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
-    "setup": "tsx src/setup.ts",
-    "allowance": "tsx src/allowance-demo.ts",
-    "scheduled": "tsx src/scheduled.ts",
-    "demo": "tsx src/demo.ts",
+    "setup": "npx tsx src/setup.ts",
+    "allowance": "npx tsx src/allowance-demo.ts",
+    "scheduled": "npx tsx src/scheduled.ts",
+    "demo": "npx tsx src/demo.ts",
+    "module-test": "npx tsx src/module-test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
