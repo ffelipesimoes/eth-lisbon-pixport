@@ -64,8 +64,8 @@ describe("brlToCentavos", () => {
 });
 
 describe("detectPixKeyType", () => {
-  it("detects EVP (random UUID)", () => {
-    expect(detectPixKeyType("123e4567-e89b-12d3-a456-426614174000")).toBe("EVP");
+  it("detects RANDOM (UUID key)", () => {
+    expect(detectPixKeyType("123e4567-e89b-12d3-a456-426614174000")).toBe("RANDOM");
   });
   it("detects EMAIL", () => {
     expect(detectPixKeyType("user@example.com")).toBe("EMAIL");

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { randomUUID } from "crypto";
-import { addToAllowlist, isAllowed } from "../allowlist/index.js";
+import { addToAllowlist } from "../allowlist/index.js";
 import { logDecisionToHcs } from "../hedera/index.js";
 import { saveMandateRecord, getMandateRecord } from "../mandates/store.js";
 
@@ -28,12 +28,13 @@ export interface CreateMandateResponse {
 
 const router = Router();
 const HCS_TOPIC_ID = process.env.HCS_TOPIC_ID ?? "";
+const HEDERA_ACCOUNT_REGEX = /^0\.0\.\d+$/;
 
 /**
  * POST /mandates
  *
  * Create a payment mandate:
- *   1. Validate required fields
+ *   1. Validate required fields & formats (security sanitization)
  *   2. Add payeePixKey to in-memory allowlist
  *   3. Log mandate creation to HCS audit trail
  *   4. Return mandateId and status
@@ -49,8 +50,20 @@ router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Re
     return;
   }
 
-  const parsedAmount = parseFloat(maxAmount);
-  if (isNaN(parsedAmount) || parsedAmount <= 0) {
+  const cleanPayeeKey = String(payeePixKey).trim();
+  const cleanPayerAccount = String(payerAccountId).trim();
+  const cleanMaxAmount = String(maxAmount).trim();
+
+  if (!HEDERA_ACCOUNT_REGEX.test(cleanPayerAccount)) {
+    res.status(400).json({
+      error: "bad_request",
+      message: "payerAccountId must be a valid Hedera account ID (format 0.0.XXXXX)",
+    });
+    return;
+  }
+
+  const parsedAmount = parseFloat(cleanMaxAmount);
+  if (isNaN(parsedAmount) || !isFinite(parsedAmount) || parsedAmount <= 0) {
     res.status(400).json({
       error: "bad_request",
       message: "maxAmount must be a positive decimal string (e.g. \"100.00\")",
@@ -62,7 +75,7 @@ router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Re
   const createdAt = new Date().toISOString();
 
   // Register payee on allowlist
-  addToAllowlist(payeePixKey);
+  addToAllowlist(cleanPayeeKey);
 
   // Log to HCS
   let hcsSequenceNumber: number | undefined;
@@ -72,10 +85,10 @@ router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Re
     const hcsResult = await logDecisionToHcs({
       event: "mandate_created",
       mandateId,
-      payeePixKey,
-      payerAccountId,
-      maxAmount,
-      memo: memo ?? null,
+      payeePixKey: cleanPayeeKey,
+      payerAccountId: cleanPayerAccount,
+      maxAmount: cleanMaxAmount,
+      memo: memo ? String(memo).trim() : null,
       timestamp: createdAt,
     });
     hcsSequenceNumber = hcsResult.sequenceNumber;
@@ -88,10 +101,10 @@ router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Re
   const mandate = {
     mandateId,
     status: "approved" as const,
-    payeePixKey,
-    payerAccountId,
-    maxAmount,
-    memo,
+    payeePixKey: cleanPayeeKey,
+    payerAccountId: cleanPayerAccount,
+    maxAmount: cleanMaxAmount,
+    memo: memo ? String(memo).trim() : undefined,
     hcsTopicId,
     hcsSequenceNumber,
     createdAt,
@@ -108,9 +121,10 @@ router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Re
  * Return mandate status for the console and for POST /pay validation.
  */
 router.get("/:id", (req: Request<{ id: string }>, res: Response) => {
-  const mandate = getMandateRecord(req.params.id);
+  const cleanId = String(req.params.id).trim();
+  const mandate = getMandateRecord(cleanId);
   if (!mandate) {
-    res.status(404).json({ error: "not_found", message: `Mandate ${req.params.id} not found` });
+    res.status(404).json({ error: "not_found", message: `Mandate ${cleanId} not found` });
     return;
   }
   res.json(mandate);

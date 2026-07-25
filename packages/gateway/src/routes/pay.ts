@@ -34,19 +34,20 @@ export interface PayResponse {
 
 const router = Router();
 const HEDERA_TREASURY_ID = process.env.HEDERA_TREASURY_ID ?? process.env.HEDERA_OPERATOR_ID ?? "";
-const HCS_TOPIC_ID = process.env.HCS_TOPIC_ID ?? "";
+const HEDERA_ACCOUNT_REGEX = /^0\.0\.\d+$/;
 
 /**
  * POST /pay
  *
  * Execute a Pix payment within the approved mandate allowance:
- *   1. Decode and CRC-validate the BR Code
- *   2. Validate mandate exists and is approved
- *   3. Check payee Pix key is on the allowlist
- *   4. Check on-chain HIP-336 allowance via Mirror Node
- *   5. If approved: invoke Pix payout adapter (credentials from .env)
- *   6. ALWAYS log decision (approved or rejected) to HCS topic
- *   7. Return { decision, reason, hcsSequenceNumber, hashscanUrl }
+ *   1. Validate required fields & formats (security sanitization)
+ *   2. Decode and CRC-validate the BR Code
+ *   3. Validate mandate exists and is approved
+ *   4. Check payee Pix key is on the allowlist
+ *   5. Check on-chain HIP-336 allowance via Mirror Node
+ *   6. If approved: invoke Pix payout adapter (credentials from .env)
+ *   7. ALWAYS log decision (approved or rejected) to HCS topic
+ *   8. Return { decision, reason, hcsSequenceNumber, hashscanUrl }
  */
 router.post("/", async (req: Request<object, object, PayBody>, res: Response) => {
   const { brCode, payerAccountId, amount, mandateId } = req.body;
@@ -60,35 +61,58 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
     return;
   }
 
+  const cleanPayerAccount = String(payerAccountId).trim();
+  const cleanAmount = String(amount).trim();
+  const cleanMandateId = String(mandateId).trim();
+  const cleanBrCode = String(brCode).trim();
+
+  if (!HEDERA_ACCOUNT_REGEX.test(cleanPayerAccount)) {
+    res.status(400).json({
+      error: "bad_request",
+      message: "payerAccountId must be a valid Hedera account ID (format 0.0.XXXXX)",
+    });
+    return;
+  }
+
+  const parsedAmount = parseFloat(cleanAmount);
+  if (isNaN(parsedAmount) || !isFinite(parsedAmount) || parsedAmount <= 0) {
+    res.status(400).json({
+      error: "bad_request",
+      message: "amount must be a positive decimal string (e.g. \"10.00\")",
+    });
+    return;
+  }
+
   // ── Step 1: Decode and CRC-validate BR Code ─────────────────────────────
   let decoded;
   try {
-    decoded = decodeBrCode(brCode);
+    decoded = decodeBrCode(cleanBrCode);
   } catch (err) {
     if (err instanceof BrCodeDecodeError) {
       res.status(422).json({ error: "invalid_br_code", message: err.message });
       return;
     }
-    throw err;
+    res.status(422).json({ error: "invalid_br_code", message: "Failed to decode BR Code" });
+    return;
   }
 
-  const payeePixKey = decoded.merchantAccount?.key ?? "";
+  const payeePixKey = (decoded.merchantAccount?.key ?? "").trim();
 
   // ── Step 2: Validate mandate ─────────────────────────────────────────────
-  const mandate = getMandateRecord(mandateId);
+  const mandate = getMandateRecord(cleanMandateId);
   if (!mandate) {
     const audit = await logDecisionSafe({
       event: "payment_rejected",
       reason: "mandate_not_found",
-      mandateId,
-      payerAccountId,
+      mandateId: cleanMandateId,
+      payerAccountId: cleanPayerAccount,
       payeePixKey,
-      amount,
+      amount: cleanAmount,
       timestamp: decidedAt,
     });
     res.status(422).json({
       decision: "rejected" as const,
-      reason: `Mandate ${mandateId} not found`,
+      reason: `Mandate ${cleanMandateId} not found`,
       payeePixKey,
       hcsSequenceNumber: audit?.sequenceNumber,
       hashscanUrl: audit?.hashscanUrl,
@@ -101,11 +125,11 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
     const audit = await logDecisionSafe({
       event: "payment_rejected",
       reason: "mandate_not_approved",
-      mandateId,
+      mandateId: cleanMandateId,
       mandateStatus: mandate.status,
-      payerAccountId,
+      payerAccountId: cleanPayerAccount,
       payeePixKey,
-      amount,
+      amount: cleanAmount,
       timestamp: decidedAt,
     });
     res.status(422).json({
@@ -124,9 +148,9 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
     const audit = await logDecisionSafe({
       event: "payment_rejected",
       reason: "no_pix_key_in_brcode",
-      mandateId,
-      payerAccountId,
-      amount,
+      mandateId: cleanMandateId,
+      payerAccountId: cleanPayerAccount,
+      amount: cleanAmount,
       timestamp: decidedAt,
     });
     res.status(422).json({
@@ -143,10 +167,10 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
     const audit = await logDecisionSafe({
       event: "payment_rejected",
       reason: "payee_not_on_allowlist",
-      mandateId,
-      payerAccountId,
+      mandateId: cleanMandateId,
+      payerAccountId: cleanPayerAccount,
       payeePixKey,
-      amount,
+      amount: cleanAmount,
       timestamp: decidedAt,
     });
     res.status(422).json({
@@ -163,8 +187,8 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
   // ── Step 4: On-chain allowance check via Mirror Node ────────────────────
   const allowanceCheck = await checkAllowance(
     HEDERA_TREASURY_ID,
-    payerAccountId,
-    amount,
+    cleanPayerAccount,
+    cleanAmount,
   );
 
   if (!allowanceCheck.allowed) {
@@ -172,10 +196,10 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
       event: "payment_rejected",
       reason: "allowance_exceeded",
       detail: allowanceCheck.reason,
-      mandateId,
-      payerAccountId,
+      mandateId: cleanMandateId,
+      payerAccountId: cleanPayerAccount,
       payeePixKey,
-      requestedAmount: amount,
+      requestedAmount: cleanAmount,
       remainingAllowance: allowanceCheck.remainingBrl,
       timestamp: decidedAt,
     });
@@ -191,17 +215,15 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
   }
 
   // ── Step 5: Execute Pix payout (interface — credentials from .env) ──────
-  // The Pix payout adapter reads credentials from env via loadPixCredentials().
-  // In demo mode (no credentials configured) we generate a synthetic E2E ID.
   let endToEndId: string;
   let payoutError: string | undefined;
 
   try {
     endToEndId = await executePix({
       destinationKey: payeePixKey,
-      amount,
+      amount: cleanAmount,
       txid: randomUUID(),
-      description: `PIXPORT mandate ${mandateId}`,
+      description: `PIXPORT mandate ${cleanMandateId}`,
     });
   } catch (err) {
     payoutError = err instanceof Error ? err.message : String(err);
@@ -212,10 +234,10 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
   // ── Step 6: Log approval to HCS (ALWAYS) ────────────────────────────────
   const audit = await logDecisionSafe({
     event: "payment_approved",
-    mandateId,
-    payerAccountId,
+    mandateId: cleanMandateId,
+    payerAccountId: cleanPayerAccount,
     payeePixKey,
-    amount,
+    amount: cleanAmount,
     endToEndId,
     payoutNote: payoutError ? "pix_stub_mode" : "pix_executed",
     timestamp: decidedAt,

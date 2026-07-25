@@ -6,7 +6,15 @@ import router from "./routes/index.js";
 const port = parseInt(process.env.GATEWAY_PORT ?? "3001", 10);
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
+
+// Security headers middleware
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
 
 app.use(
   pinoHttp({
