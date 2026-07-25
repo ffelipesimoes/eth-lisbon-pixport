@@ -231,6 +231,21 @@ npm test             # Run unit tests
 3. (**2:30–4:00**) Full happy path — World ID verify → mandate approve → Pix payment
 4. (**4:00–5:00**) Real R$0.01 Pix payment sent live; HCS log confirmed on HashScan
 
+### Manual test runbook (Felipe / judges)
+
+Step-by-step QA flows with exact curl commands, expected JSON, and HashScan/Mirror verification:
+
+**[docs/MANUAL-TEST-FLOWS.md](./docs/MANUAL-TEST-FLOWS.md)**
+
+| # | Flow | Status |
+|---|------|--------|
+| 1 | Setup / `npm run demo` + gateway health | Ready |
+| 2 | `POST /mandates` + HCS log | Ready |
+| 3 | Approved pay + Pix payout | Partial (stub until PIX-18) |
+| 4 | **RECUSA** (ledger + gateway) | Ready — [live RECUSA tx](https://hashscan.io/testnet/transaction/0.0.9743531-1784978501.389600418) |
+| 5 | World Identity Check (orb vs none) | Ready — [DEV_TEST.md](./packages/agent/DEV_TEST.md) |
+| 6 | HCS audit trail topic `0.0.9742958` | Ready — [HashScan topic](https://hashscan.io/testnet/topic/0.0.9742958) |
+
 ---
 
 ## Validation
@@ -253,6 +268,7 @@ pixport/
 │   ├── agent/            # Agentic path + World Identity Check gate
 │   └── console/          # Operator UI
 ├── docs/
+│   ├── MANUAL-TEST-FLOWS.md        # Step-by-step QA runbook (Felipe / judges)
 │   ├── TESTNET-METRICS.md          # Living Success (20%) counters
 │   ├── WORLD-IDENTITY-CHECK.md     # Dev + user Identity Check tests + screenshots
 │   └── world-identity-check/       # Terminal SVG captures + flow diagrams
