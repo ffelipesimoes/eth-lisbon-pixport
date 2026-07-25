@@ -18,12 +18,15 @@ const MIRROR_NODE: Record<string, string> = {
 export interface AllowanceConfig {
   network: "testnet" | "mainnet";
   tokenId: string;
+  /** HTS token owner account (treasury). The HIP-336 allowance is owner → spender. */
+  treasuryId: string;
 }
 
 export function loadAllowanceConfig(): AllowanceConfig {
   const network = (process.env.HEDERA_NETWORK ?? "testnet") as "testnet" | "mainnet";
-  const tokenId = process.env.HEDERA_HTS_TOKEN_ID ?? "";
-  return { network, tokenId };
+  const tokenId = process.env.HEDERA_HTS_TOKEN_ID ?? process.env.HTS_TOKEN_ID ?? "";
+  const treasuryId = process.env.HEDERA_TREASURY_ID ?? "";
+  return { network, tokenId, treasuryId };
 }
 
 /**

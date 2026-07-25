@@ -33,11 +33,24 @@ export class GatewayError extends Error {
  * POST /pay — execute a Pix payment via the PIXPORT gateway.
  *
  * Throws GatewayError when the gateway returns a non-2xx status.
+ * Set GATEWAY_MOCK=true to return a synthetic response without a real network call
+ * (useful for judges running the demo without a live gateway process).
  */
 export async function callGatewayPay(
   request: GatewayPayRequest,
   config: GatewayConfig,
 ): Promise<GatewayPayResponse> {
+  // Mock mode: synthetic approval, no network call required
+  if (process.env.GATEWAY_MOCK === "true") {
+    const endToEndId = `MOCK-E2E-${Date.now()}`;
+    console.log(`[Gateway] MOCK mode — synthetic E2E ID: ${endToEndId}`);
+    return {
+      endToEndId,
+      status: "completed",
+      completedAt: new Date().toISOString(),
+    };
+  }
+
   const url = `${config.baseUrl}/pay`;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (config.apiKey) {

@@ -27,17 +27,18 @@ export interface WorldIDConfig {
 }
 
 export function loadWorldIDConfig(): WorldIDConfig {
-  const appId = process.env.WORLD_APP_ID;
+  const appId = process.env.WORLD_APP_ID ?? "";
   const action = process.env.WORLD_ACTION ?? "pixport-payment";
   const environment = (process.env.WORLD_ENV ?? "staging") as "staging" | "production";
 
-  if (!appId || appId.startsWith("app_X")) {
+  // WORLD_MOCK=true bypasses all API calls — safe for dev / judge testing
+  if (process.env.WORLD_MOCK !== "true" && (!appId || appId.startsWith("app_X"))) {
     throw new Error(
-      "WORLD_APP_ID is not configured. Set it in .env (register at https://developer.worldcoin.org).",
+      "WORLD_APP_ID is not configured. Set it in .env or set WORLD_MOCK=true for dev testing.",
     );
   }
 
-  return { appId, action, environment };
+  return { appId: appId || "app_mock", action, environment };
 }
 
 /**
@@ -112,6 +113,7 @@ export function resolveAllowanceTier(verificationLevel: VerificationLevel): Allo
  * Full identity check: verify proof → resolve tier.
  *
  * If proof is undefined (no World ID provided), returns the "none" tier.
+ * If WORLD_MOCK=true, the proof is accepted as-is without calling the API.
  */
 export async function identityCheckAndResolveTier(
   proof: WorldIDProof | undefined,
@@ -121,6 +123,19 @@ export async function identityCheckAndResolveTier(
     return {
       tier: TIERS.none,
       verifyResult: { verified: false, verification_level: null, reason: "No proof provided" },
+    };
+  }
+
+  // Mock mode: trust the verification_level in the proof without calling the API.
+  // Intended for dev testing and judge demos — never use in production.
+  if (process.env.WORLD_MOCK === "true") {
+    // proof.verification_level is "orb" | "device" (enforced by Zod schema)
+    const level = proof.verification_level;
+    const tier = resolveAllowanceTier(level);
+    console.log(`[WorldID] MOCK mode — accepting ${level} proof without API call`);
+    return {
+      tier,
+      verifyResult: { verified: true, verification_level: level },
     };
   }
 

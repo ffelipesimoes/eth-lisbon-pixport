@@ -28,7 +28,8 @@ export function loadHcsConfig(): HcsConfig {
 
 function buildHederaClient(config: HcsConfig): Client {
   const client = config.network === "testnet" ? Client.forTestnet() : Client.forMainnet();
-  client.setOperator(config.operatorId, PrivateKey.fromStringECDSA(config.operatorKey));
+  // fromString() auto-detects ED25519 (DER) and ECDSA — supports both key formats
+  client.setOperator(config.operatorId, PrivateKey.fromString(config.operatorKey));
   return client;
 }
 

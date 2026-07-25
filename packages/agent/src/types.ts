@@ -98,6 +98,12 @@ export const PaymentRequestSchema = z.object({
   mandateId: z.string().min(1),
   /** Optional World ID proof — if omitted, verification_level is "none". */
   worldIdProof: WorldIDProofSchema.optional(),
+  /**
+   * Payment amount in BRL as a decimal string (e.g. "25.00").
+   * When provided, overrides the amount extracted from the BR Code (EMV field 54).
+   * Useful when the BR Code is open-value or the caller knows the amount from context.
+   */
+  amount: z.string().optional(),
 });
 export type PaymentRequest = z.infer<typeof PaymentRequestSchema>;
 

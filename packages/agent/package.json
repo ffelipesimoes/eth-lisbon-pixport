@@ -9,6 +9,7 @@
     "dev": "tsx src/index.ts",
     "hello-world": "tsx src/hello-world.ts",
     "pay": "tsx src/index.ts",
+    "demo": "WORLD_MOCK=true GATEWAY_MOCK=true tsx src/e2e-demo.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

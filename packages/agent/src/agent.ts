@@ -24,6 +24,23 @@ import { fetchAllowance, checkAllowanceSufficiency, loadAllowanceConfig } from "
 import { callGatewayPay, loadGatewayConfig, GatewayError } from "./gateway.js";
 import { logToHcs, loadHcsConfig } from "./hcs.js";
 
+/**
+ * Extract a value from an EMV QR Code (TLV format: ID(2) + LEN(2) + VALUE).
+ * Returns undefined when the field is not present in the string.
+ */
+function extractEmvField(emvString: string, fieldId: string): string | undefined {
+  let i = 0;
+  while (i + 4 <= emvString.length) {
+    const id = emvString.slice(i, i + 2);
+    const lenStr = emvString.slice(i + 2, i + 4);
+    const len = parseInt(lenStr, 10);
+    if (isNaN(len) || len < 0 || i + 4 + len > emvString.length) break;
+    if (id === fieldId) return emvString.slice(i + 4, i + 4 + len);
+    i += 4 + len;
+  }
+  return undefined;
+}
+
 export async function runPaymentAgent(request: PaymentRequest): Promise<AgentDecision> {
   const worldConfig = loadWorldIDConfig();
   const allowanceConfig = loadAllowanceConfig();
@@ -33,14 +50,10 @@ export async function runPaymentAgent(request: PaymentRequest): Promise<AgentDec
   const timestamp = new Date().toISOString();
 
   // ── Step 1: Parse the BR Code amount ──────────────────────────────────────
-  // The BR Code may contain the amount or be open-value (amount from caller).
-  // For now we parse the amount from the request or set a sentinel for Block 2.
-  // Full BR Code decode lives in the gateway; we trust it to validate CRC16.
+  // Priority: explicit request.amount > EMV field 54 > default "1.00"
   let paymentAmountUnits: bigint;
   try {
-    // Convert BRL amount string to token minor units (1 BRL = 100 minor units)
-    // This will be refined in Block 2 once gateway returns decoded amount.
-    const amountStr = "1.00"; // Block 1 placeholder — will be extracted from BR Code in Block 2
+    const amountStr = request.amount ?? extractEmvField(request.brCode, "54") ?? "1.00";
     paymentAmountUnits = BigInt(Math.round(parseFloat(amountStr) * 100));
   } catch {
     const hcsEvent: HcsAuditEvent = {
@@ -84,11 +97,13 @@ export async function runPaymentAgent(request: PaymentRequest): Promise<AgentDec
   }
 
   // ── Step 3: Query HIP-336 allowance from Mirror Node ─────────────────────
+  // The allowance is granted by the treasury (owner) to the payer (spender).
+  const ownerAccountId = allowanceConfig.treasuryId || request.payerAccountId;
   let allowanceState = null;
   try {
     allowanceState = await fetchAllowance(
+      ownerAccountId,
       request.payerAccountId,
-      request.payerAccountId, // In this model, payer is both owner and spender of own allowance
       allowanceConfig,
     );
   } catch (err) {
