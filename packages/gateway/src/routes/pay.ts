@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { decodeBrCode, BrCodeDecodeError } from "../brcode/index.js";
 import { isAllowed } from "../allowlist/index.js";
 import { checkAllowance, logDecisionToHcs } from "../hedera/index.js";
-import { getMandateRecord } from "../mandates/store.js";
+import { getMandateRecord, updateMandateSpent } from "../mandates/store.js";
 import { BitpagPixAdapter } from "../pix/bitpagAdapter.js";
 import type { PixCredentials } from "../pix/types.js";
 import { randomUUID } from "crypto";
@@ -42,10 +42,10 @@ const HEDERA_ACCOUNT_REGEX = /^0\.0\.\d+$/;
  * Execute a Pix payment within the approved mandate allowance:
  *   1. Validate required fields & formats (security sanitization)
  *   2. Decode and CRC-validate the BR Code
- *   3. Validate mandate exists, is approved, and amount <= mandate.maxAmount
+ *   3. Validate mandate exists, is approved, and amount <= mandate remaining cumulative capacity
  *   4. Check payee Pix key is on the allowlist
  *   5. Check on-chain HIP-336 allowance via Mirror Node
- *   6. If approved: invoke Pix payout adapter (credentials from .env)
+ *   6. If approved: invoke Pix payout adapter (credentials from .env) & update cumulative spent
  *   7. ALWAYS log decision (approved or rejected) to HCS topic
  *   8. Return { decision, reason, hcsSequenceNumber, hashscanUrl }
  */
@@ -143,9 +143,13 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
     return;
   }
 
-  // ── Check mandate maxAmount ──────────────────────────────────────────────
+  // ── Check mandate cumulative maxAmount ──────────────────────────────────
   const mandateMaxAmount = parseFloat(mandate.maxAmount);
-  if (!isNaN(mandateMaxAmount) && parsedAmount > mandateMaxAmount) {
+  const mandateSpentAmount = parseFloat(mandate.spentAmount ?? "0");
+  const mandateRemainingCapacity = mandateMaxAmount - mandateSpentAmount;
+
+  if (!isNaN(mandateMaxAmount) && parsedAmount > mandateRemainingCapacity) {
+    const safeRemaining = Math.max(0, mandateRemainingCapacity).toFixed(2);
     const audit = await logDecisionSafe({
       event: "payment_rejected",
       reason: "mandate_max_amount_exceeded",
@@ -154,11 +158,13 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
       payeePixKey,
       requestedAmount: cleanAmount,
       mandateMaxAmount: mandate.maxAmount,
+      mandateSpentAmount: mandate.spentAmount ?? "0.00",
+      mandateRemainingCapacity: safeRemaining,
       timestamp: decidedAt,
     });
     res.status(422).json({
       decision: "rejected" as const,
-      reason: `Requested amount ${cleanAmount} BRL exceeds mandate max amount ${mandate.maxAmount} BRL`,
+      reason: `Requested amount ${cleanAmount} BRL exceeds remaining mandate capacity ${safeRemaining} BRL (spent ${mandateSpentAmount.toFixed(2)} / max ${mandateMaxAmount.toFixed(2)} BRL)`,
       payeePixKey,
       hcsSequenceNumber: audit?.sequenceNumber,
       hashscanUrl: audit?.hashscanUrl,
@@ -254,6 +260,9 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
     endToEndId = `SYNTHETIC-${randomUUID()}`;
     console.warn("Pix payout unavailable (credential stub), using synthetic E2E ID:", payoutError);
   }
+
+  // Deduct/update spent amount for the mandate on successful payment execution
+  updateMandateSpent(cleanMandateId, parsedAmount);
 
   // ── Step 6: Log approval to HCS (ALWAYS) ────────────────────────────────
   const audit = await logDecisionSafe({
