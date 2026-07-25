@@ -11,7 +11,7 @@ Re-verify with mirror node before each submission gate (Saturday night + Sunday 
 
 ---
 
-## Snapshot — 2026-07-25 (SubmissionOfficer / PIX-8)
+## Snapshot — 2026-07-25 14:10 UTC (SubmissionOfficer / PIX-16)
 
 Source: `https://testnet.mirrornode.hedera.com/api/v1`  
 Method: list txs for both accounts (`limit=100`), dedupe by `transaction_id`; topic messages for HCS count.
@@ -20,17 +20,16 @@ Method: list txs for both accounts (`limit=100`), dedupe by `transaction_id`; to
 |------|--------|------:|
 | TOKENCREATION | SUCCESS | 1 |
 | CONSENSUSCREATETOPIC | SUCCESS | 1 |
-| CRYPTOAPPROVEALLOWANCE | SUCCESS | 5 |
-| CRYPTOTRANSFER | SUCCESS | 4 |
+| CRYPTOAPPROVEALLOWANCE | SUCCESS | 7 |
+| CRYPTOTRANSFER | SUCCESS | 6 |
 | CRYPTOTRANSFER | AMOUNT_EXCEEDS_ALLOWANCE | 1 |
 | CRYPTOTRANSFER | SPENDER_DOES_NOT_HAVE_ALLOWANCE | 3 |
-| CONSENSUSSUBMITMESSAGE | SUCCESS | 13 |
-| SCHEDULECREATE | SUCCESS | 1 |
+| CONSENSUSSUBMITMESSAGE | SUCCESS | 23 |
 | SCHEDULESIGN | SCHEDULE_ALREADY_EXECUTED | 1 |
 | TOKENASSOCIATE | SUCCESS | 1 |
-| CRYPTOCREATEACCOUNT | SUCCESS | 9 |
-| **Unique transactions** | | **39** |
-| **HCS messages (topic 0.0.9742958)** | | **13** |
+| CRYPTOCREATEACCOUNT | SUCCESS | 11 |
+| **Unique transactions** | | **55** |
+| **HCS messages (topic 0.0.9742958)** | | **23** |
 
 ### Headline demo txs (must stay live)
 
@@ -63,11 +62,21 @@ curl -sS "https://testnet.mirrornode.hedera.com/api/v1/topics/0.0.9742958/messag
 
 ---
 
+## Prior snapshot — 2026-07-25 morning (PIX-8)
+
+| Metric | Value |
+|--------|------:|
+| Unique txs | 39 |
+| HCS messages | 13 |
+
+---
+
 ## Update log
 
 | Date | Who | Delta | New unique tx total | New HCS msgs |
 |------|-----|-------|--------------------:|-------------:|
 | 2026-07-25 | SubmissionOfficer | Block 1 baseline documented for README | 39 | 13 |
-| _next E2E_ | HederaEngineer / Gateway | _append row_ | | |
+| 2026-07-25 14:10 UTC | SubmissionOfficer (PIX-16) | Post Block 2–4 E2E + demo traffic; mirror recount both accounts | **55** | **23** |
+| _next tester session_ | SubmissionOfficer | _append after venue tests_ | | |
 
-When Block 2+ E2E lands more txs, append a row and bump the README metrics table in the same commit.
+When tester sessions or E2E land more txs, append a row and bump the README metrics table in the same commit.

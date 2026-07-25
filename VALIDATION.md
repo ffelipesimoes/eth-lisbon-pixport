@@ -4,22 +4,30 @@
 > This file is evidence, not marketing. Every row needs a real name, what they ran, a quoted reaction, and a pass/fail outcome.  
 > Team members (Felipe, Paperclip agents) do **not** count toward the ≥3 independent testers.
 
-**Status:** scaffold ready — slots open for ≥3 independent builders/testers at ETHGlobal Lisbon venue.  
-**Last updated:** 2026-07-25 (SubmissionOfficer / PIX-8)  
-**Repo:** https://github.com/ffelipesimoes/eth-lisbon-pixport
+**Status:** tester kit ready · demo unblocked (`npm run demo`) · **0 / 3 independent testers filled** — venue sourcing is the critical path  
+**Last updated:** 2026-07-25 (SubmissionOfficer / PIX-16)  
+**Repo:** https://github.com/ffelipesimoes/eth-lisbon-pixport  
+**Tester kit:** [docs/tester-kit/](./docs/tester-kit/README.md)
 
 ---
 
-## How to run a validation session (script for recruiters)
+## How to run a validation session
 
-1. Open README live proof table first (RECUSA HashScan link).
-2. Clone + install (or use the demo console if up).
-3. Pick **one** path:
-   - **Judge path (5 min):** click RECUSA → SUCCESS transfer → token → topic on HashScan.
-   - **Builder path (15–20 min):** `npm install` → configure testnet `.env` from `.env.example` → run allowance demo / gateway health.
-   - **World ID path:** follow [packages/agent/DEV_TEST.md](./packages/agent/DEV_TEST.md) (dev path without phone where documented).
-4. Capture: name, role/affiliation, timestamp, what they tried, quote, outcome, optional photo of HashScan on their screen.
-5. Paste into a free slot below the same day — do not batch at the end.
+Use the **printed kit** (do not improvise):
+
+1. [docs/tester-kit/CONSENT.md](./docs/tester-kit/CONSENT.md) — quote consent first  
+2. [docs/tester-kit/5-STEP-SCRIPT.md](./docs/tester-kit/5-STEP-SCRIPT.md) — 5 steps ≤10 min  
+3. [docs/tester-kit/FEEDBACK-FORM.md](./docs/tester-kit/FEEDBACK-FORM.md) — one form per tester  
+4. [docs/tester-kit/FACILITATOR-CHEATSHEET.md](./docs/tester-kit/FACILITATOR-CHEATSHEET.md) — recovery + HashScan  
+
+**Demo command (after PIX-15):**
+
+```bash
+npm run demo
+# http://localhost:3000  ·  gateway :3001
+```
+
+**HashScan-only path (Wi-Fi / laptop failure still counts):** RECUSA tx + second live link + form.
 
 ### Consent line (read aloud)
 
@@ -40,7 +48,8 @@ Only record **Yes**.
 | 5 | _optional_ | | | | | |
 
 **Independent testers completed:** 0 / 3 minimum  
-**Blocker if still 0 by Saturday night:** escalate CEO + Felipe venue sourcing (see Recruiting log).
+**Blocker:** venue humans must sit the kit — agents cannot invent names/quotes.  
+**Unblock owner:** CEO + Felipe (floor recruiting) using the 60s pitch in the tester kit README.
 
 ---
 
@@ -64,8 +73,9 @@ Only record **Yes**.
 - [ ] Opened SUCCESS transfer HashScan link
 - [ ] Opened HTS token + HCS topic
 - [ ] Cloned repo / read README
-- [ ] Ran local setup (`npm install` / gateway / allowance demo)
-- [ ] World ID dev path ([DEV_TEST.md](./packages/agent/DEV_TEST.md))
+- [ ] Ran `npm run demo` APPROVE path
+- [ ] Ran console RECUSA path
+- [ ] World ID docs ([docs/WORLD-IDENTITY-CHECK.md](./docs/WORLD-IDENTITY-CHECK.md))
 - [ ] Other: ___
 
 **Steps observed (bullet the actual path)**
@@ -110,8 +120,9 @@ Only record **Yes**.
 - [ ] SUCCESS transfer HashScan
 - [ ] Token + topic
 - [ ] Clone / README
-- [ ] Local setup
-- [ ] World ID dev path
+- [ ] `npm run demo` APPROVE
+- [ ] Console RECUSA
+- [ ] World ID path
 - [ ] Other: ___
 
 **Steps observed**
@@ -155,8 +166,9 @@ Only record **Yes**.
 - [ ] SUCCESS transfer HashScan
 - [ ] Token + topic
 - [ ] Clone / README
-- [ ] Local setup
-- [ ] World ID dev path
+- [ ] `npm run demo` APPROVE
+- [ ] Console RECUSA
+- [ ] World ID path
 - [ ] Other: ___
 
 **Steps observed**
@@ -192,7 +204,7 @@ Copy a tester block above. Prefer ≥5 if traffic allows — judges reward densi
 
 | Theme | Mentioned by | Severity | Owner | Status |
 |-------|--------------|----------|-------|--------|
-| _e.g. README unclear on deny path_ | T# | High/Med/Low | | open |
+| _fill after session 1_ | T# | High/Med/Low | | open |
 | | | | | |
 
 ---
@@ -203,16 +215,18 @@ Independent testers are the largest risk to the 15% Validation score. Track ever
 
 | When | Who asked | Channel | Target person / booth | Response | Next step |
 |------|-----------|---------|----------------------|----------|-----------|
-| 2026-07-25 | SubmissionOfficer | Paperclip → CEO | Felipe + venue builders | Escalated — need ≥3 non-team testers | CEO/Felipe source at venue; return names here |
+| 2026-07-25 AM | SubmissionOfficer | Paperclip → CEO | Felipe + venue builders | Escalated — need ≥3 non-team testers | CEO/Felipe source at venue |
+| 2026-07-25 14:15 UTC | SubmissionOfficer | PIX-16 after PIX-15 done | Demo + **tester kit shipped** | Kit ready; still 0 forms | **CEO/Felipe: run kit on floor now** — 60s pitch in docs/tester-kit/README.md |
 | | | | | | |
 
 ### Sourcing checklist (CEO / Felipe)
 
 - [ ] 3 builders from **other** ETHGlobal teams (not PIXPORT)
 - [ ] Prefer people who can open HashScan on their laptop
-- [ ] Mix: 1 non-technical click-through + 2 builders who clone/run
+- [ ] Mix: 1 HashScan-only + 2 who run `npm run demo`
 - [ ] Collect quote + consent same session
 - [ ] Optional: mentor / sponsor engineer as tester #4
+- [ ] Return filled FEEDBACK-FORM (photo or paste) → SubmissionOfficer fills slots same hour
 
 ### What “done” looks like for Validation
 
@@ -228,13 +242,17 @@ Independent testers are the largest risk to the 15% Validation score. Track ever
 
 | Who | Role | Date | Notes |
 |-----|------|------|-------|
-| _team only_ | | | Useful for polish; excluded from Validation score |
+| GatewayEngineer | PIX-15 smoke | 2026-07-25 | Flow A APPROVE + Flow B RECUSA on `npm run demo` — product ready for external testers |
+| SubmissionOfficer | script/kit dry-run | 2026-07-25 | Video script + tester kit committed; fallback MP4 4:33 |
 
 ---
 
 ## Links judges need alongside this file
 
 - README live proof: [README.md](./README.md)
-- Metrics: [docs/TESTNET-METRICS.md](./docs/TESTNET-METRICS.md)
+- Metrics: [docs/TESTNET-METRICS.md](./docs/TESTNET-METRICS.md) — **55 unique txs · 23 HCS msgs** (2026-07-25 14:10 UTC)
 - PRD / score prediction: [HACKATHON-PRD.md](./HACKATHON-PRD.md)
-- World ID dev path: [packages/agent/DEV_TEST.md](./packages/agent/DEV_TEST.md)
+- World ID: [docs/WORLD-IDENTITY-CHECK.md](./docs/WORLD-IDENTITY-CHECK.md)
+- Video script: [docs/video/VIDEO-SCRIPT.md](./docs/video/VIDEO-SCRIPT.md)
+- Fallback video: [docs/video/pixport-fallback.mp4](./docs/video/pixport-fallback.mp4)
+- Tester kit: [docs/tester-kit/](./docs/tester-kit/README.md)

@@ -28,10 +28,10 @@ rg -i 'solidity|\.sol\b|pragma solidity|hardhat|foundry|ethers\.Contract' --glob
 | Transfer SUCCESS within mandate | [tx 0.0.9743531-1784978497.572441319](https://hashscan.io/testnet/transaction/0.0.9743531-1784978497.572441319) |
 | HIP-336 approve (500 EURC mandate) | [tx 0.0.9742864-1784978497.752430412](https://hashscan.io/testnet/transaction/0.0.9742864-1784978497.752430412) |
 | HTS token EURC-demo | [token 0.0.9742957](https://hashscan.io/testnet/token/0.0.9742957) |
-| HCS audit topic (13 messages) | [topic 0.0.9742958](https://hashscan.io/testnet/topic/0.0.9742958) |
+| HCS audit topic (23 messages) | [topic 0.0.9742958](https://hashscan.io/testnet/topic/0.0.9742958) |
 | Scheduled TX (agentic deferred pay) | [schedule 0.0.9743558](https://hashscan.io/testnet/schedule/0.0.9743558) |
 
-**Mirror-node verified** (2026-07-25): 39 unique txs across treasury `0.0.9742864` + spender `0.0.9743531`; 13 HCS messages. Full breakdown in [docs/TESTNET-METRICS.md](./docs/TESTNET-METRICS.md).
+**Mirror-node verified** (2026-07-25 14:10 UTC): **55** unique txs across treasury `0.0.9742864` + spender `0.0.9743531`; **23** HCS messages. Full breakdown in [docs/TESTNET-METRICS.md](./docs/TESTNET-METRICS.md).
 
 ---
 
@@ -146,16 +146,16 @@ Snapshot 2026-07-25 via `testnet.mirrornode.hedera.com` (accounts `0.0.9742864` 
 |------|--------|------:|---------------|
 | `TOKENCREATION` | SUCCESS | 1 | HTS EURC-demo |
 | `CONSENSUSCREATETOPIC` | SUCCESS | 1 | HCS audit topic |
-| `CRYPTOAPPROVEALLOWANCE` | SUCCESS | 5 | HIP-336 mandate approve |
-| `CRYPTOTRANSFER` | SUCCESS | 4 | In-allowance spend |
+| `CRYPTOAPPROVEALLOWANCE` | SUCCESS | 7 | HIP-336 mandate approve |
+| `CRYPTOTRANSFER` | SUCCESS | 6 | In-allowance spend |
 | `CRYPTOTRANSFER` | AMOUNT_EXCEEDS_ALLOWANCE | 1 | **RECUSA** (headline) |
 | `CRYPTOTRANSFER` | SPENDER_DOES_NOT_HAVE_ALLOWANCE | 3 | Earlier deny proofs |
-| `CONSENSUSSUBMITMESSAGE` | SUCCESS | 13 | HCS decision logs |
+| `CONSENSUSSUBMITMESSAGE` | SUCCESS | 23 | HCS decision logs |
 | `SCHEDULECREATE` / sign | SUCCESS / already executed | 1+1 | Agentic deferred pay |
 | `TOKENASSOCIATE` | SUCCESS | 1 | Spender association |
-| `CRYPTOCREATEACCOUNT` | SUCCESS | 9 | Bootstrap accounts |
-| **Unique txs (all types)** | — | **39** | Live testnet volume |
-| **HCS messages on topic** | — | **13** | Immutable audit trail |
+| `CRYPTOCREATEACCOUNT` | SUCCESS | 11 | Bootstrap accounts |
+| **Unique txs (all types)** | — | **55** | Live testnet volume |
+| **HCS messages on topic** | — | **23** | Immutable audit trail |
 
 Living log (re-runnable): [docs/TESTNET-METRICS.md](./docs/TESTNET-METRICS.md). Update after every Block 2+ E2E run.
 
@@ -253,13 +253,16 @@ npm test             # Run unit tests
 
 ## Demo
 
-**Video**: [YouTube link TBD] · ≤5 minutes
+**Video script (timestamps):** [docs/video/VIDEO-SCRIPT.md](./docs/video/VIDEO-SCRIPT.md) · ≤5 minutes  
+**Fallback MP4 (4:33):** [docs/video/pixport-fallback.mp4](./docs/video/pixport-fallback.mp4) — opens on RECUSA, closes on Pix R$0,01  
+**YouTube (live take):** _TBD after venue recording — paste unlisted URL here_
 
 **Script summary**:
-1. (**0:00–0:45**) RECUSA scenario — PIXPORT rejects an over-limit payment on HashScan, live
-2. (**0:45–2:30**) Architecture walkthrough — No Solidity, four Hedera services, World ID
-3. (**2:30–4:00**) Full happy path — World ID verify → mandate approve → Pix payment
-4. (**4:00–5:00**) Real R$0.01 Pix payment sent live; HCS log confirmed on HashScan
+1. (**0:00–0:53**) **RECUSA open** — HashScan `AMOUNT_EXCEEDS_ALLOWANCE` (tx `0.0.9743531-1784978501.389600418`)
+2. (**0:53–1:55**) Problem + architecture — No Solidity, HTS / HIP-336 / HCS / Scheduled TX
+3. (**1:55–3:35**) World Identity Check + live `npm run demo` APPROVE path + HCS trail
+4. (**3:35–4:10**) Live product RECUSA (reject before Pix)
+5. (**4:10–5:00**) **Close** — real Pix R$0,01 + end card
 
 ### Manual test runbook (Felipe / judges)
 
@@ -280,11 +283,12 @@ Step-by-step QA flows with exact curl commands, expected JSON, and HashScan/Mirr
 
 ## Validation
 
-External tester feedback documented in [VALIDATION.md](./VALIDATION.md).
+External tester evidence: [VALIDATION.md](./VALIDATION.md).  
+**Venue kit (5 steps + form):** [docs/tester-kit/](./docs/tester-kit/README.md).
 
-- ≥3 independent non-team testers
-- Named, quoted feedback
-- Test outcomes with screenshots
+- ≥3 independent non-team testers (slots open — kit ready post PIX-15 demo)
+- Named, quoted feedback + PASS / PASS_WITH_FRICTION / FAIL
+- At least one tester opens the RECUSA HashScan link themselves
 
 ---
 
@@ -301,7 +305,10 @@ pixport/
 │   ├── MANUAL-TEST-FLOWS.md        # Step-by-step QA runbook (Felipe / judges)
 │   ├── TESTNET-METRICS.md          # Living Success (20%) counters
 │   ├── WORLD-IDENTITY-CHECK.md     # Dev + user Identity Check tests + screenshots
-│   └── world-identity-check/       # Terminal SVG captures + flow diagrams
+│   ├── world-identity-check/       # Screenshots + terminal captures
+│   ├── video/                      # VIDEO-SCRIPT + fallback MP4 (≤5 min)
+│   └── tester-kit/                 # 5-step script + feedback form for venue
+├── scripts/demo.sh       # npm run demo — gateway + console
 ├── .env.example
 ├── HACKATHON-PRD.md      # PRD with score prediction
 ├── VALIDATION.md         # External tester evidence (≥3 independent)
