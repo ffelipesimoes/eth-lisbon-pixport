@@ -42,7 +42,7 @@ const HEDERA_ACCOUNT_REGEX = /^0\.0\.\d+$/;
  * Execute a Pix payment within the approved mandate allowance:
  *   1. Validate required fields & formats (security sanitization)
  *   2. Decode and CRC-validate the BR Code
- *   3. Validate mandate exists and is approved
+ *   3. Validate mandate exists, is approved, and amount <= mandate.maxAmount
  *   4. Check payee Pix key is on the allowlist
  *   5. Check on-chain HIP-336 allowance via Mirror Node
  *   6. If approved: invoke Pix payout adapter (credentials from .env)
@@ -135,6 +135,30 @@ router.post("/", async (req: Request<object, object, PayBody>, res: Response) =>
     res.status(422).json({
       decision: "rejected" as const,
       reason: `Mandate is not approved (status: ${mandate.status})`,
+      payeePixKey,
+      hcsSequenceNumber: audit?.sequenceNumber,
+      hashscanUrl: audit?.hashscanUrl,
+      decidedAt,
+    } satisfies PayResponse);
+    return;
+  }
+
+  // ── Check mandate maxAmount ──────────────────────────────────────────────
+  const mandateMaxAmount = parseFloat(mandate.maxAmount);
+  if (!isNaN(mandateMaxAmount) && parsedAmount > mandateMaxAmount) {
+    const audit = await logDecisionSafe({
+      event: "payment_rejected",
+      reason: "mandate_max_amount_exceeded",
+      mandateId: cleanMandateId,
+      payerAccountId: cleanPayerAccount,
+      payeePixKey,
+      requestedAmount: cleanAmount,
+      mandateMaxAmount: mandate.maxAmount,
+      timestamp: decidedAt,
+    });
+    res.status(422).json({
+      decision: "rejected" as const,
+      reason: `Requested amount ${cleanAmount} BRL exceeds mandate max amount ${mandate.maxAmount} BRL`,
       payeePixKey,
       hcsSequenceNumber: audit?.sequenceNumber,
       hashscanUrl: audit?.hashscanUrl,
