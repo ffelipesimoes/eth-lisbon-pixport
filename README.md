@@ -19,7 +19,7 @@
 
 Brazil's Pix instant payment network processes **60M+ transactions/day** with no programmable mandate enforcement. PIXPORT adds an on-chain mandate layer: a treasury approves a spending allowance using HIP-336 (the Hedera Token Service native allowance mechanism), and any attempt to exceed that limit is rejected by the ledger itself — before the Pix API is ever called.
 
-The rejection is called **RECUSA** — a protocol-level `SPENDER_DOES_NOT_HAVE_ALLOWANCE` error from Hedera, not a software check.
+The rejection is called **RECUSA** — a protocol-level `AMOUNT_EXCEEDS_ALLOWANCE` error from Hedera, not a software check.
 
 Every mandate event (approve, transfer, RECUSA, Pix confirmation) is logged to an HCS topic — an immutable, timestamped, tamper-proof compliance trail.
 
@@ -95,18 +95,18 @@ Dev path and user flow documented in [WORLD-ID-DOCS.md](./WORLD-ID-DOCS.md) (com
 
 | Artifact | Hedera ID | HashScan |
 |----------|-----------|---------|
-| HTS Token (EURC-demo) | `TBD` | [View on HashScan](TBD) |
-| HCS Topic (Audit Trail) | `TBD` | [View on HashScan](TBD) |
+| HTS Token (EURC-demo) | `0.0.9742957` | [View on HashScan](https://hashscan.io/testnet/token/0.0.9742957) |
+| HCS Topic (Audit Trail) | `0.0.9742958` | [View on HashScan](https://hashscan.io/testnet/topic/0.0.9742958) |
 
 ### HIP-336 Allowance Demo Transactions
 
-| Scenario | Result | Tx ID | HashScan |
-|----------|--------|-------|---------|
-| Treasury approves mandate | ✅ `SUCCESS` | `TBD` | [View](TBD) |
-| Spender transfers within allowance | ✅ `SUCCESS` | `TBD` | [View](TBD) |
-| **RECUSA: Transfer exceeds allowance** | ❌ `SPENDER_DOES_NOT_HAVE_ALLOWANCE` | `TBD` | [View](TBD) |
-| Scheduled Transaction (agentic) | ✅ `SUCCESS` | `TBD` | [View](TBD) |
-| HCS mandate event logged | ✅ `SUCCESS` | `TBD` | [View](TBD) |
+| Scenario | Result | HashScan |
+|----------|--------|---------|
+| Treasury approves 500 EURC mandate | ✅ `SUCCESS` | [View](https://hashscan.io/testnet/transaction/0.0.9742864-1784978497.752430412) |
+| Spender transfers 300 EURC within allowance | ✅ `SUCCESS` | [View](https://hashscan.io/testnet/transaction/0.0.9743531-1784978497.572441319) |
+| **RECUSA: 400 EURC exceeds 200 remaining** | ❌ `AMOUNT_EXCEEDS_ALLOWANCE` | [**View ← README**](https://hashscan.io/testnet/transaction/0.0.9743531-1784978501.389600418) |
+| HCS mandate event logged | ✅ `SUCCESS` | [View](https://hashscan.io/testnet/transaction/0.0.9742864-1784978503.777535015) |
+| Scheduled Transaction (agentic) | ✅ `SUCCESS` | `TBD — run npm run scheduled` |
 
 ### Pix Live Payment
 
@@ -114,7 +114,7 @@ Dev path and user flow documented in [WORLD-ID-DOCS.md](./WORLD-ID-DOCS.md) (com
 |--------|--------|--------|---------|
 | Real Pix payment — Banco Inter | R$0.01 | ✅ Paid | Screenshot TBD |
 
-**Total testnet transactions**: `TBD` _(updated continuously by HederaEngineer)_
+**Total testnet transactions**: `9+` _(updated continuously by HederaEngineer)_
 
 ---
 
