@@ -1,55 +1,40 @@
 /**
- * Hedera integration for the gateway.
+ * Gateway Hedera adapter — thin wrapper over @pixport/hedera.
  *
- * - checkAllowance: queries Mirror Node REST API (no SDK required)
- * - logDecisionToHcs: submits an audit message to HCS via the Hashgraph SDK
+ * Uses HederaEngineer's reusable primitives:
+ *   checkAllowance()    — Mirror Node REST (no tx)
+ *   logDecisionToHcs()  — HCS TopicMessageSubmitTransaction
+ *   fetchHcsMessages()  — Mirror Node REST for audit trail
  *
- * All credentials read from env vars; never hardcoded.
+ * All credentials read from env; never hardcoded.
  */
 
 import {
-  Client,
-  AccountId,
-  PrivateKey,
-  TopicMessageSubmitTransaction,
-  TopicId,
-} from "@hashgraph/sdk";
-import "dotenv/config";
+  checkAllowance as hederaCheckAllowance,
+  logDecisionToHcs as hederaLogDecision,
+  type HcsDecision,
+} from "@pixport/hedera";
 
-const MIRROR_NODE = "https://testnet.mirrornode.hedera.com";
+const MIRROR_BASE = "https://testnet.mirrornode.hedera.com";
 const HCS_TOPIC_ID = process.env.HCS_TOPIC_ID ?? "";
 const HTS_TOKEN_ID = process.env.HTS_TOKEN_ID ?? "";
-
-function buildClient(): Client {
-  const accountId = process.env.HEDERA_OPERATOR_ID;
-  const privateKey = process.env.HEDERA_OPERATOR_KEY;
-  if (!accountId || !privateKey) {
-    throw new Error("Missing HEDERA_OPERATOR_ID or HEDERA_OPERATOR_KEY");
-  }
-  const client = Client.forTestnet();
-  client.setOperator(
-    AccountId.fromString(accountId),
-    PrivateKey.fromStringDer(privateKey),
-  );
-  return client;
-}
+const HEDERA_TREASURY_ID = process.env.HEDERA_TREASURY_ID ?? process.env.HEDERA_OPERATOR_ID ?? "";
 
 export interface AllowanceResult {
   allowed: boolean;
-  /** Remaining allowance in token's smallest unit (e.g. cents for 2-decimal token) */
   remainingUnits: bigint;
-  /** Remaining allowance as decimal BRL string */
   remainingBrl: string;
   reason?: string;
 }
 
 /**
- * Check the HIP-336 token allowance for a spender on the treasury account
- * via the Hedera Mirror Node REST API.
+ * Check the HIP-336 token allowance for a spender on the treasury account.
+ * Delegates to @pixport/hedera checkAllowance (Mirror Node REST).
  *
- * ownerAccountId  — account that holds the tokens (treasury)
- * spenderAccountId — account whose allowance we query
- * requestedAmountBrl — amount requested in BRL (e.g. "50.00")
+ * @param ownerAccountId      Token holder (treasury, e.g. 0.0.9742864)
+ * @param spenderAccountId    Spender whose allowance we check (payerAccountId from mandate)
+ * @param requestedAmountBrl  Requested amount as decimal BRL string (e.g. "50.00")
+ * @param tokenId             HTS token ID override (defaults to HTS_TOKEN_ID env)
  */
 export async function checkAllowance(
   ownerAccountId: string,
@@ -58,46 +43,49 @@ export async function checkAllowance(
   tokenId: string = HTS_TOKEN_ID,
 ): Promise<AllowanceResult> {
   if (!tokenId) {
-    return { allowed: false, remainingUnits: 0n, remainingBrl: "0.00", reason: "HTS_TOKEN_ID not configured" };
-  }
-
-  const url = `${MIRROR_NODE}/api/v1/accounts/${ownerAccountId}/allowances/tokens?spender.id=${spenderAccountId}&token.id=${tokenId}`;
-
-  let data: { allowances?: Array<{ amount_granted: number; amount: number }> };
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) {
-      return { allowed: false, remainingUnits: 0n, remainingBrl: "0.00", reason: `Mirror Node error: ${resp.status}` };
-    }
-    data = (await resp.json()) as typeof data;
-  } catch (err) {
-    return { allowed: false, remainingUnits: 0n, remainingBrl: "0.00", reason: `Mirror Node unreachable: ${String(err)}` };
-  }
-
-  const allowances = data.allowances ?? [];
-  if (allowances.length === 0) {
-    return { allowed: false, remainingUnits: 0n, remainingBrl: "0.00", reason: "No allowance found for spender" };
-  }
-
-  // Mirror Node returns: amount_granted (original), amount (remaining)
-  const entry = allowances[0];
-  const remainingUnits = BigInt(entry.amount ?? 0);
-  // Token has 2 decimals (EURC-demo)
-  const remainingBrl = (Number(remainingUnits) / 100).toFixed(2);
-
-  // Convert requested BRL to token units (2 decimals)
-  const requestedUnits = BigInt(Math.round(parseFloat(requestedAmountBrl) * 100));
-
-  if (requestedUnits > remainingUnits) {
     return {
       allowed: false,
-      remainingUnits,
-      remainingBrl,
-      reason: `Requested ${requestedAmountBrl} BRL exceeds remaining allowance ${remainingBrl} BRL`,
+      remainingUnits: 0n,
+      remainingBrl: "0.00",
+      reason: "HTS_TOKEN_ID not configured",
     };
   }
 
-  return { allowed: true, remainingUnits, remainingBrl };
+  try {
+    const result = await hederaCheckAllowance(ownerAccountId, spenderAccountId, tokenId);
+
+    if (!result.found) {
+      return {
+        allowed: false,
+        remainingUnits: 0n,
+        remainingBrl: "0.00",
+        reason: "No allowance found for spender",
+      };
+    }
+
+    const requestedUnits = BigInt(Math.round(parseFloat(requestedAmountBrl) * 100));
+    if (requestedUnits > result.remainingUnits) {
+      return {
+        allowed: false,
+        remainingUnits: result.remainingUnits,
+        remainingBrl: result.remainingDecimal,
+        reason: `Requested ${requestedAmountBrl} BRL exceeds remaining allowance ${result.remainingDecimal} BRL`,
+      };
+    }
+
+    return {
+      allowed: true,
+      remainingUnits: result.remainingUnits,
+      remainingBrl: result.remainingDecimal,
+    };
+  } catch (err) {
+    return {
+      allowed: false,
+      remainingUnits: 0n,
+      remainingBrl: "0.00",
+      reason: `Mirror Node error: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
 }
 
 export interface HcsLogResult {
@@ -107,8 +95,9 @@ export interface HcsLogResult {
 }
 
 /**
- * Submit a structured audit message to the HCS topic.
- * Always called for both approved and rejected payments.
+ * Log a decision to the HCS topic.
+ * Delegates to @pixport/hedera logDecisionToHcs.
+ * The `message` is any structured object — wrapped into HcsDecision shape.
  */
 export async function logDecisionToHcs(
   message: Record<string, unknown>,
@@ -118,24 +107,23 @@ export async function logDecisionToHcs(
     throw new Error("HCS_TOPIC_ID not configured");
   }
 
-  const client = buildClient();
-  try {
-    const tx = await new TopicMessageSubmitTransaction()
-      .setTopicId(TopicId.fromString(topicId))
-      .setMessage(JSON.stringify(message))
-      .execute(client);
+  const decision: HcsDecision = {
+    mandateId: String(message.mandateId ?? ""),
+    payee: String(message.payeePixKey ?? message.payee ?? ""),
+    amount: String(message.amount ?? "0"),
+    decision: (String(message.event ?? "").includes("approved") ? "APPROVED" : "REFUSED"),
+    reason: message.reason ? String(message.reason) : undefined,
+    timestamp: message.timestamp ? String(message.timestamp) : new Date().toISOString(),
+    ...message,
+  } as HcsDecision & Record<string, unknown>;
 
-    const receipt = await tx.getReceipt(client);
-    const txId = tx.transactionId.toString();
-    const seqNum = receipt.topicSequenceNumber?.toNumber() ?? 0;
+  const result = await hederaLogDecision(decision, topicId);
 
-    // HashScan URL for the topic message
-    const hashscanUrl = `https://hashscan.io/testnet/topic/${topicId}`;
-
-    return { sequenceNumber: seqNum, transactionId: txId, hashscanUrl };
-  } finally {
-    client.close();
-  }
+  return {
+    sequenceNumber: result.sequenceNumber,
+    transactionId: result.transactionId,
+    hashscanUrl: result.topicUrl,
+  };
 }
 
 /** Fetch latest messages from the HCS topic via Mirror Node */
@@ -153,7 +141,7 @@ export async function fetchHcsMessages(
 ): Promise<HcsMirrorEntry[]> {
   if (!topicId) return [];
 
-  const url = `${MIRROR_NODE}/api/v1/topics/${topicId}/messages?limit=${limit}&order=desc`;
+  const url = `${MIRROR_BASE}/api/v1/topics/${topicId}/messages?limit=${limit}&order=desc`;
   try {
     const resp = await fetch(url);
     if (!resp.ok) return [];

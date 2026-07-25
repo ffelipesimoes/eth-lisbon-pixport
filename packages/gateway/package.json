@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@pixport/hedera": "*",
     "express": "^4.22.2"
   },
   "devDependencies": {
