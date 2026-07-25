@@ -27,13 +27,15 @@ export function buildClient(op?: OperatorConfig): Client {
   const client = Client.forTestnet();
   client.setOperator(
     AccountId.fromString(operator.accountId),
-    PrivateKey.fromStringDER(operator.privateKey),
+    PrivateKey.fromStringDer(operator.privateKey),
   );
   return client;
 }
 
 export function hashscanTx(txId: string): string {
-  return `https://hashscan.io/testnet/transaction/${txId.replace("@", "-").replace(".", "-")}`;
+  // TX IDs look like: 0.0.12345@1784969015.123456789
+  // HashScan format:  0.0.12345-1784969015.123456789
+  return `https://hashscan.io/testnet/transaction/${txId.replace("@", "-")}`;
 }
 
 export function hashscanAccount(accountId: string): string {

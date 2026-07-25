@@ -31,7 +31,7 @@ async function main() {
 
   const op = loadOperator();
   const client = buildClient(op);
-  const operatorKey = PrivateKey.fromStringDER(op.privateKey);
+  const operatorKey = PrivateKey.fromStringDer(op.privateKey);
 
   // Build the inner transaction (a simple HBAR self-transfer for demo)
   const innerTransfer = new TransferTransaction()

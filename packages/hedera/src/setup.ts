@@ -32,7 +32,7 @@ async function createEurcToken(): Promise<{ tokenId: string; txId: string }> {
 
   console.log("Creating EURC-demo fungible token on Hedera TESTNET...");
 
-  const supplyKey = PrivateKey.fromStringDER(op.privateKey);
+  const supplyKey = PrivateKey.fromStringDer(op.privateKey);
 
   const tx = await new TokenCreateTransaction()
     .setTokenName("EURC Demo")
@@ -59,7 +59,7 @@ async function createEurcToken(): Promise<{ tokenId: string; txId: string }> {
 async function createHcsTopic(): Promise<{ topicId: string; txId: string }> {
   const op = loadOperator();
   const client = buildClient(op);
-  const submitKey = PrivateKey.fromStringDER(op.privateKey);
+  const submitKey = PrivateKey.fromStringDer(op.privateKey);
 
   console.log("Creating HCS audit topic on Hedera TESTNET...");
 

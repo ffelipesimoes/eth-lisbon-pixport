@@ -72,7 +72,7 @@ async function main() {
   const topicId = requiredEnv("HCS_TOPIC_ID");
 
   const treasuryId = op.accountId;
-  const treasuryKey = PrivateKey.fromStringDER(op.privateKey);
+  const treasuryKey = PrivateKey.fromStringDer(op.privateKey);
 
   console.log(`Treasury:    ${treasuryId}`);
   console.log(`Token:       ${tokenId}`);
