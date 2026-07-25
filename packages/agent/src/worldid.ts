@@ -1,23 +1,41 @@
 /**
- * World ID verification + allowance tier mapping.
+ * World Identity Check (Beta) — server-side verification + allowance tier mapping.
  *
- * Flow:
- *  1. Receive a WorldIDProof from the caller.
- *  2. POST to the World ID Cloud API to verify the ZK proof.
- *  3. Map the returned verification_level to an AllowanceTier.
+ * This module implements the World Identity Check gate that determines the payer's
+ * AllowanceTier. "Identity Check" is World's Beta product for verifying unique
+ * personhood via the Orb device.
+ *
+ * Tier mapping (World Identity Check Beta → HIP-336 allowance tier):
+ *   "orb"    → Identity Check ✓ (Orb-verified unique human)  → HIGH  tier (1 M units)
+ *   "device" → World App device-verified (not full Identity Check) → MEDIUM tier (100 k units)
+ *   absent   → No proof / unverified                              → ZERO  tier (rejected)
+ *
+ * Verification uses verifyCloudProof() from @worldcoin/idkit-core/backend — the
+ * canonical SDK function for server-side Identity Check verification (v2 API).
  *
  * Dev-test path (no phone required):
- *  Set WORLD_ENV=staging and use https://simulator.worldcoin.org to generate
- *  a valid test proof against the staging Cloud API endpoint. See DEV_TEST.md.
+ *   Set WORLD_ENV=staging and use https://simulator.worldcoin.org to generate
+ *   a staging orb proof. See DEV_TEST.md for full steps.
  */
 
+import { verifyCloudProof } from "@worldcoin/idkit-core/backend";
+import { VerificationLevel as IDKitVerificationLevel } from "@worldcoin/idkit-core";
 import type { WorldIDProof, WorldIDVerifyResult, VerificationLevel, AllowanceTier } from "./types.js";
 import { TIERS } from "./types.js";
 
-/** World ID Cloud API base URL per environment. */
-const WORLD_API_BASE: Record<string, string> = {
-  staging: "https://staging-developer.worldcoin.org",
-  production: "https://developer.worldcoin.org",
+/**
+ * The verification level required for World Identity Check (Beta).
+ * Only orb-level proofs pass the Identity Check gate and receive the HIGH tier.
+ */
+export const IDENTITY_CHECK_LEVEL: VerificationLevel = "orb";
+
+/**
+ * World Identity Check Cloud API v2 base URL per environment.
+ * verifyCloudProof appends /{app_id} automatically when this is passed as endpoint.
+ */
+const WORLD_API_V2_BASE: Record<string, string> = {
+  staging: "https://staging-developer.worldcoin.org/api/v2/verify",
+  production: "https://developer.worldcoin.org/api/v2/verify",
 };
 
 export interface WorldIDConfig {
@@ -42,78 +60,83 @@ export function loadWorldIDConfig(): WorldIDConfig {
 }
 
 /**
- * Verify a World ID proof via the Cloud API.
+ * Verify a World Identity Check proof using the canonical @worldcoin/idkit-core/backend
+ * verifyCloudProof() function (v2 API).
  *
- * Returns { verified: true, verification_level } on success,
- * or { verified: false, reason } on failure.
+ * The v2 API accepts the proof fields and a hashed signal, and returns { success: true }
+ * on valid proofs. The verification_level is trusted from the proof after successful
+ * verification — the ZK proof cryptographically binds the credential type.
+ *
+ * For staging (judge testing), pass WORLD_ENV=staging to route to the staging Cloud API.
  */
 export async function verifyWorldIDProof(
   proof: WorldIDProof,
   config: WorldIDConfig,
 ): Promise<WorldIDVerifyResult> {
-  const base = WORLD_API_BASE[config.environment] ?? WORLD_API_BASE.staging;
-  const url = `${base}/api/v1/verify/${config.appId}`;
+  const base = WORLD_API_V2_BASE[config.environment] ?? WORLD_API_V2_BASE.staging;
+  // verifyCloudProof constructs the full URL as `${endpoint}/${app_id}` when endpoint ends with the base path.
+  // We pass the full endpoint including app_id to be explicit.
+  const endpoint = `${base}/${config.appId}`;
 
-  let response: Response;
+  let result: { success: boolean; code?: string; detail?: string };
   try {
-    response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: config.action,
-        signal: proof.signal,
+    result = await verifyCloudProof(
+      {
         proof: proof.proof,
         merkle_root: proof.merkle_root,
         nullifier_hash: proof.nullifier_hash,
-        verification_level: proof.verification_level,
-      }),
-    });
+        // Cast to IDKit enum — runtime values "orb"/"device" match enum members exactly
+        verification_level: proof.verification_level as unknown as IDKitVerificationLevel,
+      },
+      config.appId as `app_${string}`,
+      config.action,
+      proof.signal,
+      endpoint,
+    );
   } catch (err) {
     return {
       verified: false,
       verification_level: null,
-      reason: `Network error calling World ID API: ${err instanceof Error ? err.message : String(err)}`,
+      reason: `Network error calling World Identity Check API: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
 
-  if (response.ok) {
-    // 200 → proof is valid
-    const body = (await response.json()) as { nullifier_hash?: string; verification_level?: string };
-    const level = body.verification_level as "orb" | "device" | undefined;
+  if (result.success) {
+    const level = proof.verification_level;
+    const isIdentityCheck = level === IDENTITY_CHECK_LEVEL;
+    console.log(
+      `[WorldID] Identity Check result: ${level}` +
+      (isIdentityCheck ? " [Identity Check ✓ — Orb-verified human]" : " [device-only, not Identity Check]"),
+    );
     return {
       verified: true,
-      verification_level: level ?? proof.verification_level,
+      verification_level: level,
     };
   }
 
-  // 400 / 4xx → verification failed (invalid proof, already used nullifier, etc.)
-  let reason = `HTTP ${response.status}`;
-  try {
-    const errBody = (await response.json()) as { code?: string; detail?: string; attribute?: string };
-    reason = errBody.detail ?? errBody.code ?? reason;
-  } catch {
-    // ignore parse error
-  }
-  return { verified: false, verification_level: null, reason };
+  return {
+    verified: false,
+    verification_level: null,
+    reason: result.detail ?? result.code ?? "World Identity Check verification failed",
+  };
 }
 
 /**
  * Map a World ID verification level to an AllowanceTier.
  *
- * This is the core identity → tier business logic:
- *   orb-verified human  → high tier (TIER_ORB_MAX)
- *   device-verified     → medium tier (TIER_DEVICE_MAX)
- *   unverified / failed → reject tier (0 spend)
+ * Identity Check (orb) → HIGH tier  (1,000,000 units max)
+ * Device-verified       → MEDIUM tier (100,000 units max)
+ * Unverified / failed   → ZERO tier  (0 — immediate reject)
  */
 export function resolveAllowanceTier(verificationLevel: VerificationLevel): AllowanceTier {
   return TIERS[verificationLevel];
 }
 
 /**
- * Full identity check: verify proof → resolve tier.
+ * Full Identity Check gate: verify proof → resolve tier.
  *
- * If proof is undefined (no World ID provided), returns the "none" tier.
- * If WORLD_MOCK=true, the proof is accepted as-is without calling the API.
+ * If proof is undefined (no World ID provided), returns the "none" tier (immediate reject).
+ * If WORLD_MOCK=true, the proof's verification_level is trusted without an API call.
  */
 export async function identityCheckAndResolveTier(
   proof: WorldIDProof | undefined,
@@ -122,17 +145,20 @@ export async function identityCheckAndResolveTier(
   if (!proof) {
     return {
       tier: TIERS.none,
-      verifyResult: { verified: false, verification_level: null, reason: "No proof provided" },
+      verifyResult: { verified: false, verification_level: null, reason: "No World ID proof provided — Identity Check required" },
     };
   }
 
-  // Mock mode: trust the verification_level in the proof without calling the API.
+  // Mock mode: trust the verification_level in the proof without calling the Identity Check API.
   // Intended for dev testing and judge demos — never use in production.
   if (process.env.WORLD_MOCK === "true") {
-    // proof.verification_level is "orb" | "device" (enforced by Zod schema)
     const level = proof.verification_level;
     const tier = resolveAllowanceTier(level);
-    console.log(`[WorldID] MOCK mode — accepting ${level} proof without API call`);
+    const isIdentityCheck = level === IDENTITY_CHECK_LEVEL;
+    console.log(
+      `[WorldID] MOCK — ${level} proof accepted without API call` +
+      (isIdentityCheck ? " [Identity Check ✓]" : " [device-only, not Identity Check]"),
+    );
     return {
       tier,
       verifyResult: { verified: true, verification_level: level },

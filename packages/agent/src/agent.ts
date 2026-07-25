@@ -19,6 +19,7 @@
 
 import "dotenv/config";
 import type { PaymentRequest, AgentDecision, HcsAuditEvent } from "./types.js";
+import { TIERS } from "./types.js";
 import { identityCheckAndResolveTier, loadWorldIDConfig } from "./worldid.js";
 import { fetchAllowance, checkAllowanceSufficiency, loadAllowanceConfig } from "./allowance.js";
 import { callGatewayPay, loadGatewayConfig, GatewayError } from "./gateway.js";
@@ -76,12 +77,22 @@ export async function runPaymentAgent(request: PaymentRequest): Promise<AgentDec
     worldConfig,
   );
 
+  const identityLabel = verifyResult.verified
+    ? (verifyResult.verification_level === "orb" ? "Identity Check ✓ (orb)" : "device-verified (not Identity Check)")
+    : "unverified";
   console.log(
-    `[Agent] Identity: ${verifyResult.verified ? "verified" : "unverified"} (${verifyResult.verification_level ?? "none"}) → tier "${tier.label}" (maxSpend: ${tier.maxSpend})`,
+    `[Agent] Identity: ${identityLabel} → tier "${tier.label}" (maxSpend: ${tier.maxSpend})`,
   );
 
-  if (tier.maxSpend === 0n) {
-    const reason = verifyResult.reason ?? "World ID verification required for payments";
+  // ── Step 2b: Tier cap — per-payment hard limit from Identity Check ────────
+  // orb (Identity Check) → 1,000,000 units max per payment
+  // device (not Identity Check) → 100,000 units max per payment
+  // none → 0 (rejected below)
+  if (paymentAmountUnits > tier.maxSpend) {
+    const reason = tier.maxSpend === 0n
+      ? (verifyResult.reason ?? "World Identity Check required — no proof provided")
+      : `Identity Check tier "${tier.label}" allows max ${tier.maxSpend} units per payment; requested ${paymentAmountUnits}. ` +
+        `Complete World Identity Check (orb verification) for the ${TIERS.orb.maxSpend}-unit limit.`;
     const hcsEvent: HcsAuditEvent = {
       type: "PAYMENT_REJECTED",
       mandateId: request.mandateId,

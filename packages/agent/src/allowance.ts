@@ -49,12 +49,29 @@ interface MirrorNodeAllowanceResponse {
  * Fetch the current HIP-336 token allowance from the Mirror Node.
  *
  * Returns null if no allowance has been granted for this spender+token pair.
+ *
+ * Set ALLOWANCE_MOCK=true to return a synthetic sufficient allowance without a Mirror
+ * Node query. Combine with WORLD_MOCK=true + GATEWAY_MOCK=true for a fully standalone
+ * demo that requires no Hedera credentials.
  */
 export async function fetchAllowance(
   ownerAccountId: string,
   spenderAccountId: string,
   config: AllowanceConfig,
 ): Promise<AllowanceState | null> {
+  if (process.env.ALLOWANCE_MOCK === "true") {
+    const mockAmount = BigInt(process.env.ALLOWANCE_MOCK_AMOUNT ?? "2000000");
+    console.log(`[Allowance] MOCK — returning synthetic allowance: remaining=${mockAmount}, approved=${mockAmount}`);
+    return {
+      ownerAccountId,
+      spenderAccountId,
+      tokenId: config.tokenId || "0.0.mock",
+      approvedAmount: mockAmount,
+      spentAmount: 0n,
+      remainingAmount: mockAmount,
+    };
+  }
+
   const base = MIRROR_NODE[config.network] ?? MIRROR_NODE.testnet;
   const url =
     `${base}/api/v1/accounts/${ownerAccountId}/allowances/tokens` +
