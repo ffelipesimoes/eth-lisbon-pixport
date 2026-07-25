@@ -79,6 +79,8 @@ export const translations = {
     // Navigation
     btnPrev: "← Previous Step",
     btnNext: "Next Step →",
+    btnClearFields: "🧹 Clear Fields",
+    btnResetWizard: "🔄 Reset Entire Wizard",
     lookupTitle: "Mandate Status Lookup",
     lookupBtn: "Look Up",
     lookupLoading: "Loading...",
@@ -161,6 +163,8 @@ export const translations = {
     // Navigation
     btnPrev: "← Passo Anterior",
     btnNext: "Próximo Passo →",
+    btnClearFields: "🧹 Limpar Campos",
+    btnResetWizard: "🔄 Reiniciar Todo o Wizard",
     lookupTitle: "Consulta de Status de Mandato",
     lookupBtn: "Buscar",
     lookupLoading: "Buscando...",

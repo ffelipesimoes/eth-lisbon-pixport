@@ -70,6 +70,35 @@ export default function ConsolePage() {
   const [loadingHcs, setLoadingHcs] = useState(false);
   const [lastHcsRefresh, setLastHcsRefresh] = useState<Date | null>(null);
 
+  // ── Reset Helpers ────────────────────────────────────────────────────────
+  const handleClearStep2 = useCallback(() => {
+    setNewPayeePixKey("");
+    setNewPayerAccountId("");
+    setNewMaxAmount("");
+    setNewMemo("");
+    setCreatedMandate(null);
+    setCreateError(null);
+  }, []);
+
+  const handleClearStep3 = useCallback(() => {
+    setPayBrCode("");
+    setPayAmount("");
+    setPayResult(null);
+    setPayError(null);
+  }, []);
+
+  const handleResetAll = useCallback(() => {
+    handleClearStep2();
+    handleClearStep3();
+    setPayMandateId("");
+    setPayPayerAccountId("");
+    setMandateId("");
+    setMandate(null);
+    setMandateError(null);
+    setSelectedWorldLevel("orb");
+    setActiveStep(1);
+  }, [handleClearStep2, handleClearStep3]);
+
   const refreshHcs = useCallback(async () => {
     setLoadingHcs(true);
     setHcsError(null);
@@ -112,7 +141,6 @@ export default function ConsolePage() {
       setCreatedMandate(data);
       setPayMandateId(data.mandateId);
       setPayPayerAccountId(newPayerAccountId);
-      // Auto-advance to Step 3 after creation
       setActiveStep(3);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Unknown error");
@@ -179,6 +207,15 @@ export default function ConsolePage() {
           </h1>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <button
+              className="btn-secondary"
+              onClick={handleResetAll}
+              title={t.btnResetWizard}
+              style={{ fontSize: "0.75rem", padding: "0.25rem 0.65rem" }}
+            >
+              {t.btnResetWizard}
+            </button>
+
             <div className="header-tags">
               <span className="tag-pill tag-hedera">{t.tagHedera}</span>
               <span className="tag-pill tag-solidity">{t.tagSolidity}</span>
@@ -329,10 +366,20 @@ export default function ConsolePage() {
       {/* ── STEP 2: Create Mandate / Policy ────────────────────────────── */}
       {activeStep === 2 && (
         <div className="card">
-          <h2>
-            <span className="step-num">2</span>
-            {t.mandateTitle} <span className="endpoint">POST /mandates</span>
-          </h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2>
+              <span className="step-num">2</span>
+              {t.mandateTitle} <span className="endpoint">POST /mandates</span>
+            </h2>
+            <button
+              className="btn-secondary"
+              onClick={handleClearStep2}
+              title={t.btnClearFields}
+              style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+            >
+              {t.btnClearFields}
+            </button>
+          </div>
 
           <div style={{ marginBottom: "1rem", fontSize: "0.82rem", color: "#a78bfa" }}>
             {t.linkedWorldTier} <span className="mono" style={{ fontWeight: 700, color: "#f0abfc" }}>{selectedWorldLevel.toUpperCase()} ({selectedWorldLevel === "orb" ? "HIGH Tier 10k" : selectedWorldLevel === "device" ? "MEDIUM Tier 1k" : "ZERO Tier 0"})</span>
@@ -417,10 +464,20 @@ export default function ConsolePage() {
       {/* ── STEP 3: Execute Payment ────────────────────────────────────── */}
       {activeStep === 3 && (
         <div className="card">
-          <h2>
-            <span className="step-num">3</span>
-            {t.payTitle} <span className="endpoint">POST /pay</span>
-          </h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2>
+              <span className="step-num">3</span>
+              {t.payTitle} <span className="endpoint">POST /pay</span>
+            </h2>
+            <button
+              className="btn-secondary"
+              onClick={handleClearStep3}
+              title={t.btnClearFields}
+              style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+            >
+              {t.btnClearFields}
+            </button>
+          </div>
 
           <div className="input-row">
             <input
@@ -606,8 +663,8 @@ export default function ConsolePage() {
             <button className="btn-secondary" onClick={() => setActiveStep(3)}>
               {t.btnPrev}
             </button>
-            <button onClick={() => setActiveStep(1)}>
-              {lang === "pt" ? "🔄 Reiniciar Wizard" : "🔄 Restart Wizard"}
+            <button onClick={handleResetAll}>
+              {t.btnResetWizard}
             </button>
           </div>
         </>
