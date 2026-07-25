@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { randomUUID } from "crypto";
 import { addToAllowlist } from "../allowlist/index.js";
-import { logDecisionToHcs } from "../hedera/index.js";
+import { logDecisionToHcs, approveAllowanceOnChain } from "../hedera/index.js";
 import { saveMandateRecord, getMandateRecord } from "../mandates/store.js";
 
 export interface CreateMandateBody {
@@ -23,6 +23,7 @@ export interface CreateMandateResponse {
   maxAmount: string;
   hcsTopicId?: string;
   hcsSequenceNumber?: number;
+  hederaApprovalTxId?: string;
   createdAt: string;
 }
 
@@ -36,8 +37,9 @@ const HEDERA_ACCOUNT_REGEX = /^0\.0\.\d+$/;
  * Create a payment mandate:
  *   1. Validate required fields & formats (security sanitization)
  *   2. Add payeePixKey to in-memory allowlist
- *   3. Log mandate creation to HCS audit trail
- *   4. Return mandateId and status
+ *   3. Submit on-chain HIP-336 AccountAllowanceApproveTransaction to Hedera
+ *   4. Log mandate creation to HCS audit trail
+ *   5. Return mandateId and status
  */
 router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Response) => {
   const { payeePixKey, payerAccountId, maxAmount, memo } = req.body;
@@ -77,6 +79,17 @@ router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Re
   // Register payee on allowlist
   addToAllowlist(cleanPayeeKey);
 
+  // Submit on-chain HIP-336 Allowance Approve to Hedera Testnet
+  let hederaApprovalTxId: string | undefined;
+  try {
+    const onChainResult = await approveAllowanceOnChain(cleanPayerAccount, cleanMaxAmount);
+    if (onChainResult) {
+      hederaApprovalTxId = onChainResult.transactionId;
+    }
+  } catch (err) {
+    console.warn("On-chain approveAllowance submission note:", err instanceof Error ? err.message : err);
+  }
+
   // Log to HCS
   let hcsSequenceNumber: number | undefined;
   let hcsTopicId: string | undefined;
@@ -88,13 +101,13 @@ router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Re
       payeePixKey: cleanPayeeKey,
       payerAccountId: cleanPayerAccount,
       maxAmount: cleanMaxAmount,
+      hederaApprovalTxId,
       memo: memo ? String(memo).trim() : null,
       timestamp: createdAt,
     });
     hcsSequenceNumber = hcsResult.sequenceNumber;
     hcsTopicId = HCS_TOPIC_ID || undefined;
   } catch (err) {
-    // HCS logging failure is non-fatal for mandate creation; mandate still saved
     console.error("HCS log failed for mandate creation:", err instanceof Error ? err.message : err);
   }
 
@@ -107,6 +120,7 @@ router.post("/", async (req: Request<object, object, CreateMandateBody>, res: Re
     memo: memo ? String(memo).trim() : undefined,
     hcsTopicId,
     hcsSequenceNumber,
+    hederaApprovalTxId,
     createdAt,
   };
 

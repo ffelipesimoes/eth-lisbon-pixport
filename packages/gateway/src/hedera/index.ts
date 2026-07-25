@@ -1,6 +1,8 @@
 import {
   Client,
   TopicMessageSubmitTransaction,
+  AccountAllowanceApproveTransaction,
+  TokenId,
   TopicId,
   AccountId,
   PrivateKey,
@@ -91,6 +93,47 @@ export async function checkAllowance(
       remainingBrl: "0.00",
       reason: `Mirror Node error: ${err instanceof Error ? err.message : String(err)}`,
     };
+  }
+}
+
+/**
+ * Submit an on-chain HIP-336 AccountAllowanceApproveTransaction to Hedera.
+ * Sets the exact token allowance on the Hedera ledger for spenderAccountId.
+ */
+export async function approveAllowanceOnChain(
+  spenderAccountId: string,
+  maxAmountBrl: string,
+  tokenId: string = HTS_TOKEN_ID,
+): Promise<{ transactionId: string; hashscanUrl: string } | null> {
+  const operatorId = process.env.HEDERA_OPERATOR_ID;
+  const operatorKey = process.env.HEDERA_OPERATOR_KEY;
+  if (!operatorId || !operatorKey || !tokenId) return null;
+
+  const amountUnits = Math.round(parseFloat(maxAmountBrl) * 100);
+  if (isNaN(amountUnits) || amountUnits < 0) return null;
+
+  const client = buildClient();
+  try {
+    const tx = await new AccountAllowanceApproveTransaction()
+      .approveTokenAllowance(
+        TokenId.fromString(tokenId),
+        AccountId.fromString(operatorId),
+        AccountId.fromString(spenderAccountId),
+        amountUnits,
+      )
+      .execute(client);
+
+    await tx.getReceipt(client);
+    const txId = tx.transactionId.toString();
+    return {
+      transactionId: txId,
+      hashscanUrl: `https://hashscan.io/testnet/transaction/${txId}`,
+    };
+  } catch (err) {
+    console.error("Hedera on-chain approveAllowance failed:", err instanceof Error ? err.message : err);
+    return null;
+  } finally {
+    client.close();
   }
 }
 
