@@ -24,7 +24,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg-main);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.12) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.14) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
     radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.05) 0px, transparent 50%);
   background-attachment: fixed;
@@ -41,8 +41,8 @@ body {
 
 /* ── Header & Branding ─────────────────────────────────────────────────── */
 header {
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border-card);
 }
 
@@ -104,10 +104,140 @@ header {
   border: 1px solid rgba(232, 121, 249, 0.3);
 }
 
+/* ── Language Switcher ─────────────────────────────────────────────────── */
+.lang-switcher {
+  display: flex;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 0.2rem;
+  gap: 0.2rem;
+}
+
+.lang-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.lang-btn.active {
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+}
+
 .header-subtitle {
   font-size: 0.9rem;
   color: var(--text-muted);
   font-weight: 400;
+}
+
+/* ── Wizard Stepper Bar ─────────────────────────────────────────────────── */
+.wizard-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+}
+
+@media (max-width: 640px) {
+  .wizard-stepper {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.step-tab {
+  background: rgba(17, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.6rem;
+  padding: 0.75rem 0.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.step-tab:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+.step-tab.active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%);
+  border-color: rgba(167, 139, 250, 0.6);
+  box-shadow: 0 0 16px rgba(124, 58, 237, 0.2);
+}
+
+.step-icon {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.8);
+  color: var(--text-dim);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.step-tab.active .step-icon {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.5);
+}
+
+.step-tab.completed .step-icon {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+.step-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.step-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-sub {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Wizard Action Controls (Nav Footer) ────────────────────────────────── */
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* ── Glassmorphism Cards ───────────────────────────────────────────────── */
@@ -121,6 +251,7 @@ header {
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  animation: fadeIn 0.3s ease;
 }
 
 .card:hover {
@@ -171,7 +302,7 @@ header {
   border: 1px solid rgba(192, 132, 252, 0.25);
   border-radius: 0.75rem;
   padding: 1.25rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   position: relative;
   overflow: hidden;
 }

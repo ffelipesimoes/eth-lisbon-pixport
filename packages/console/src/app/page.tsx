@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import type { MandateStatus, HcsEntry, PayResult } from "../lib/api";
 import { fetchMandateStatus, fetchHcsAudit, createMandate, executePay } from "../lib/api";
+import type { Language } from "../lib/i18n";
+import { translations } from "../lib/i18n";
 
 const DEMO_BRCODE =
   "00020126400014BR.GOV.BCB.PIX0118teste@pixport.demo52040000530398654041.005802BR5912PIXPORT Demo6006Lisboa62070503***630462EF";
@@ -11,42 +13,6 @@ const DEMO_PAYER = "0.0.9743531";
 const HCS_TOPIC_ID = "0.0.9742958";
 
 export type WorldLevel = "orb" | "device" | "none";
-
-interface WorldTierInfo {
-  level: WorldLevel;
-  name: string;
-  badge: string;
-  maxSpend: string;
-  tierName: string;
-  description: string;
-}
-
-const WORLD_TIERS: Record<WorldLevel, WorldTierInfo> = {
-  orb: {
-    level: "orb",
-    name: "Orb Verified",
-    badge: "Identity Check ✓",
-    maxSpend: "10,000.00 BRL",
-    tierName: "HIGH Tier",
-    description: "Verified unique human via physical Orb device ZK proof",
-  },
-  device: {
-    level: "device",
-    name: "Device Verified",
-    badge: "Device Only",
-    maxSpend: "1,000.00 BRL",
-    tierName: "MEDIUM Tier",
-    description: "Verified World App mobile device (not full Identity Check)",
-  },
-  none: {
-    level: "none",
-    name: "Unverified",
-    badge: "No Proof",
-    maxSpend: "0.00 BRL",
-    tierName: "ZERO Tier",
-    description: "Proof absent or failed — immediate mandate rejection (TIER_INSUFFICIENT)",
-  },
-};
 
 function parseHcsMessage(raw: string): string {
   try {
@@ -61,6 +27,13 @@ function parseHcsMessage(raw: string): string {
 }
 
 export default function ConsolePage() {
+  // ── i18n Language State ──────────────────────────────────────────────────
+  const [lang, setLang] = useState<Language>("pt");
+  const t = translations[lang];
+
+  // ── Wizard Step State ────────────────────────────────────────────────────
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
+
   // ── World Identity Check state ───────────────────────────────────────────
   const [selectedWorldLevel, setSelectedWorldLevel] = useState<WorldLevel>("orb");
 
@@ -139,6 +112,8 @@ export default function ConsolePage() {
       setCreatedMandate(data);
       setPayMandateId(data.mandateId);
       setPayPayerAccountId(newPayerAccountId);
+      // Auto-advance to Step 3 after creation
+      setActiveStep(3);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -149,9 +124,8 @@ export default function ConsolePage() {
   const handlePay = useCallback(async () => {
     if (!payBrCode || !payPayerAccountId || !payAmount || !payMandateId) return;
 
-    // Check World ID Unverified gate before sending
     if (selectedWorldLevel === "none") {
-      setPayError("World Identity Check failed: Unverified identity (ZERO Tier) cannot execute Pix payments.");
+      setPayError(lang === "pt" ? "Verificação World ID falhou: Identidade não verificada (ZERO Tier) não pode executar pagamentos Pix." : "World Identity Check failed: Unverified identity (ZERO Tier) cannot execute Pix payments.");
       setPayResult({
         decision: "rejected",
         reason: "TIER_INSUFFICIENT: Unverified identity level (ZERO Tier) rejected before Pix call",
@@ -177,7 +151,7 @@ export default function ConsolePage() {
     } finally {
       setPaying(false);
     }
-  }, [payBrCode, payPayerAccountId, payAmount, payMandateId, selectedWorldLevel, refreshHcs]);
+  }, [payBrCode, payPayerAccountId, payAmount, payMandateId, selectedWorldLevel, lang, refreshHcs]);
 
   const lookupMandate = useCallback(async () => {
     if (!mandateId.trim()) return;
@@ -194,349 +168,450 @@ export default function ConsolePage() {
     }
   }, [mandateId]);
 
-  const currentTier = WORLD_TIERS[selectedWorldLevel];
-
   return (
     <div className="container">
-      {/* ── Header Branding ───────────────────────────────────────────── */}
+      {/* ── Header Branding & i18n Switcher ──────────────────────────────── */}
       <header>
         <div className="header-top">
           <h1 className="brand-title">
-            <span>⚡ PIXPORT</span>
-            <span className="dim" style={{ fontSize: "1rem", fontWeight: 400 }}>Console</span>
+            <span>⚡ {t.headerTitle}</span>
+            <span className="dim" style={{ fontSize: "1rem", fontWeight: 400 }}>Wizard</span>
           </h1>
-          <div className="header-tags">
-            <span className="tag-pill tag-hedera">
-              <span className="pulse-dot" style={{ width: 6, height: 6 }}></span>
-              Hedera Testnet
-            </span>
-            <span className="tag-pill tag-solidity">No Solidity</span>
-            <span className="tag-pill tag-world">World ID Beta</span>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div className="header-tags">
+              <span className="tag-pill tag-hedera">{t.tagHedera}</span>
+              <span className="tag-pill tag-solidity">{t.tagSolidity}</span>
+              <span className="tag-pill tag-world">{t.tagWorld}</span>
+            </div>
+
+            {/* Language Switcher */}
+            <div className="lang-switcher">
+              <button
+                className={`lang-btn ${lang === "pt" ? "active" : ""}`}
+                onClick={() => setLang("pt")}
+              >
+                🇵🇹 PT
+              </button>
+              <button
+                className={`lang-btn ${lang === "en" ? "active" : ""}`}
+                onClick={() => setLang("en")}
+              >
+                🇬🇧 EN
+              </button>
+            </div>
           </div>
         </div>
-        <p className="header-subtitle">
-          On-Chain Pix Mandate Layer powered by Hedera HIP-336, HCS Topic <span className="mono">{HCS_TOPIC_ID}</span>, and World Identity Check.
-        </p>
+        <p className="header-subtitle">{t.headerDesc}</p>
       </header>
 
       {/* ── Gateway Health Alert ───────────────────────────────────────── */}
       {gatewayOffline && (
         <div className="card" style={{ borderColor: "#f59e0b", background: "rgba(245, 158, 11, 0.1)" }}>
           <p style={{ color: "#fbbf24", fontWeight: 700, fontSize: "0.95rem" }}>
-            ⚠️ Gateway Offline
+            ⚠️ {t.gatewayOffline}
           </p>
           <p style={{ color: "#cbd5e1", fontSize: "0.85rem", marginTop: "0.3rem" }}>
-            Run <code style={{ color: "#fef08a" }}>npm run demo</code> or <code style={{ color: "#fef08a" }}>npm run dev -w packages/gateway</code> to start the Gateway on port 3001. The console will automatically reconnect.
+            {t.gatewayOfflineDesc}
           </p>
         </div>
       )}
 
-      {/* ── World Identity Check (Beta) Panel ───────────────────────────── */}
-      <div className="world-panel">
-        <div className="world-header">
-          <div className="world-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <circle cx="12" cy="12" r="4"></circle>
-              <line x1="12" y1="2" x2="12" y2="4"></line>
-              <line x1="12" y1="20" x2="12" y2="22"></line>
-            </svg>
-            World Identity Check (Beta) — ZK Proof Gate
+      {/* ── Wizard Stepper Bar (Interactive 4-Step Timeline) ───────────── */}
+      <div className="wizard-stepper">
+        <div
+          className={`step-tab ${activeStep === 1 ? "active" : ""} ${activeStep > 1 ? "completed" : ""}`}
+          onClick={() => setActiveStep(1)}
+        >
+          <div className="step-icon">{activeStep > 1 ? "✓" : "1"}</div>
+          <div className="step-info">
+            <div className="step-title">{t.step1Title}</div>
+            <div className="step-sub">{t.step1Sub}</div>
           </div>
-          <span className="badge badge-approved" style={{ background: "rgba(192, 132, 252, 0.2)", color: "#f0abfc", borderColor: "rgba(192, 132, 252, 0.4)" }}>
-            {currentTier.badge}
-          </span>
         </div>
 
-        <p style={{ fontSize: "0.82rem", color: "#cbd5e1", lineHeight: 1.4 }}>
-          Every payment decision is evaluated against the payer&apos;s World Identity Check level (<code className="mono">verifyCloudProof</code>).
-          The ZK proof level determines the HIP-336 allowance tier on Hedera.
-        </p>
-
-        <div className="world-tier-grid">
-          <div
-            className={`world-tier-card ${selectedWorldLevel === "orb" ? "selected-orb" : ""}`}
-            onClick={() => setSelectedWorldLevel("orb")}
-          >
-            <div className="tier-name" style={{ color: "#34d399" }}>
-              <span>Orb Verified ✓</span>
-              <span className="badge badge-approved">HIGH</span>
-            </div>
-            <div className="tier-limit">{WORLD_TIERS.orb.maxSpend}</div>
-            <div className="tier-desc">Verified unique human via physical Orb. Max spending capacity.</div>
+        <div
+          className={`step-tab ${activeStep === 2 ? "active" : ""} ${activeStep > 2 ? "completed" : ""}`}
+          onClick={() => setActiveStep(2)}
+        >
+          <div className="step-icon">{activeStep > 2 ? "✓" : "2"}</div>
+          <div className="step-info">
+            <div className="step-title">{t.step2Title}</div>
+            <div className="step-sub">{t.step2Sub}</div>
           </div>
+        </div>
 
-          <div
-            className={`world-tier-card ${selectedWorldLevel === "device" ? "selected-device" : ""}`}
-            onClick={() => setSelectedWorldLevel("device")}
-          >
-            <div className="tier-name" style={{ color: "#fbbf24" }}>
-              <span>Device Verified</span>
-              <span className="badge badge-pending">MEDIUM</span>
-            </div>
-            <div className="tier-limit">{WORLD_TIERS.device.maxSpend}</div>
-            <div className="tier-desc">Verified World App device only (not full Identity Check).</div>
+        <div
+          className={`step-tab ${activeStep === 3 ? "active" : ""} ${activeStep > 3 ? "completed" : ""}`}
+          onClick={() => setActiveStep(3)}
+        >
+          <div className="step-icon">{activeStep > 3 ? "✓" : "3"}</div>
+          <div className="step-info">
+            <div className="step-title">{t.step3Title}</div>
+            <div className="step-sub">{t.step3Sub}</div>
           </div>
+        </div>
 
-          <div
-            className={`world-tier-card ${selectedWorldLevel === "none" ? "selected-none" : ""}`}
-            onClick={() => setSelectedWorldLevel("none")}
-          >
-            <div className="tier-name" style={{ color: "#f87171" }}>
-              <span>Unverified</span>
-              <span className="badge badge-rejected">ZERO</span>
-            </div>
-            <div className="tier-limit">{WORLD_TIERS.none.maxSpend}</div>
-            <div className="tier-desc">No ZK proof — immediate refusal before Pix call.</div>
+        <div
+          className={`step-tab ${activeStep === 4 ? "active" : ""}`}
+          onClick={() => setActiveStep(4)}
+        >
+          <div className="step-icon">4</div>
+          <div className="step-info">
+            <div className="step-title">{t.step4Title}</div>
+            <div className="step-sub">{t.step4Sub}</div>
           </div>
         </div>
       </div>
 
-      {/* ── STEP 1: Create Mandate ─────────────────────────────────────── */}
-      <div className="card">
-        <h2>
-          <span className="step-num">1</span>
-          Create Mandate <span className="endpoint">POST /mandates</span>
-        </h2>
-        <div className="input-row">
-          <input
-            type="text"
-            placeholder="Payee Pix key (e.g. teste@pixport.demo)"
-            value={newPayeePixKey}
-            onChange={(e) => setNewPayeePixKey(e.target.value)}
-          />
-          <button
-            className="btn-secondary"
-            onClick={() => setNewPayeePixKey(DEMO_PIX_KEY)}
-            title="Use demo Pix key"
-          >
-            Demo key
-          </button>
-        </div>
-        <div className="input-row">
-          <input
-            type="text"
-            placeholder="Payer Hedera account (0.0.XXXXX)"
-            value={newPayerAccountId}
-            onChange={(e) => setNewPayerAccountId(e.target.value)}
-          />
-          <button
-            className="btn-secondary"
-            onClick={() => setNewPayerAccountId(DEMO_PAYER)}
-            title="Use spender account"
-          >
-            Demo account
-          </button>
-        </div>
-        <div className="input-row">
-          <input
-            type="text"
-            placeholder="Max amount BRL (e.g. 100.00)"
-            value={newMaxAmount}
-            onChange={(e) => setNewMaxAmount(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Memo (optional)"
-            value={newMemo}
-            onChange={(e) => setNewMemo(e.target.value)}
-          />
-          <button
-            onClick={() => { void handleCreateMandate(); }}
-            disabled={creating || !newPayeePixKey || !newPayerAccountId || !newMaxAmount}
-          >
-            {creating ? "Creating…" : "Create Mandate"}
-          </button>
-        </div>
+      {/* ── STEP 1: World Identity Check (Beta) ─────────────────────────── */}
+      {activeStep === 1 && (
+        <div className="card">
+          <h2>
+            <span className="step-num">1</span>
+            {t.worldPanelTitle}
+          </h2>
 
-        {createError && <p className="error" style={{ marginTop: "0.5rem" }}>{createError}</p>}
+          <p style={{ fontSize: "0.85rem", color: "#cbd5e1", lineHeight: 1.5, marginBottom: "1rem" }}>
+            {t.worldDesc}
+          </p>
 
-        {createdMandate && (
-          <div className="result-row">
-            <span className={`badge badge-${createdMandate.status}`}>{createdMandate.status.toUpperCase()}</span>
-            <span className="mono">{createdMandate.mandateId}</span>
-            {createdMandate.hcsSequenceNumber && (
-              <span className="dim">HCS #{createdMandate.hcsSequenceNumber}</span>
+          <div className="world-tier-grid">
+            <div
+              className={`world-tier-card ${selectedWorldLevel === "orb" ? "selected-orb" : ""}`}
+              onClick={() => setSelectedWorldLevel("orb")}
+            >
+              <div className="tier-name" style={{ color: "#34d399" }}>
+                <span>{t.orbTitle}</span>
+                <span className="badge badge-approved">{t.orbBadge}</span>
+              </div>
+              <div className="tier-limit">{t.orbSpend}</div>
+              <div className="tier-desc">{t.orbDesc}</div>
+            </div>
+
+            <div
+              className={`world-tier-card ${selectedWorldLevel === "device" ? "selected-device" : ""}`}
+              onClick={() => setSelectedWorldLevel("device")}
+            >
+              <div className="tier-name" style={{ color: "#fbbf24" }}>
+                <span>{t.deviceTitle}</span>
+                <span className="badge badge-pending">{t.deviceBadge}</span>
+              </div>
+              <div className="tier-limit">{t.deviceSpend}</div>
+              <div className="tier-desc">{t.deviceDesc}</div>
+            </div>
+
+            <div
+              className={`world-tier-card ${selectedWorldLevel === "none" ? "selected-none" : ""}`}
+              onClick={() => setSelectedWorldLevel("none")}
+            >
+              <div className="tier-name" style={{ color: "#f87171" }}>
+                <span>{t.noneTitle}</span>
+                <span className="badge badge-rejected">{t.noneBadge}</span>
+              </div>
+              <div className="tier-limit">{t.noneSpend}</div>
+              <div className="tier-desc">{t.noneDesc}</div>
+            </div>
+          </div>
+
+          <div className="wizard-nav">
+            <span className="dim" style={{ fontSize: "0.8rem" }}>
+              {lang === "pt" ? "Nível de identidade selecionado: " : "Selected identity level: "}
+              <strong style={{ color: "#f0abfc" }}>{selectedWorldLevel.toUpperCase()}</strong>
+            </span>
+            <button onClick={() => setActiveStep(2)}>
+              {t.btnNextStep2}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 2: Create Mandate / Policy ────────────────────────────── */}
+      {activeStep === 2 && (
+        <div className="card">
+          <h2>
+            <span className="step-num">2</span>
+            {t.mandateTitle} <span className="endpoint">POST /mandates</span>
+          </h2>
+
+          <div style={{ marginBottom: "1rem", fontSize: "0.82rem", color: "#a78bfa" }}>
+            {t.linkedWorldTier} <span className="mono" style={{ fontWeight: 700, color: "#f0abfc" }}>{selectedWorldLevel.toUpperCase()} ({selectedWorldLevel === "orb" ? "HIGH Tier 10k" : selectedWorldLevel === "device" ? "MEDIUM Tier 1k" : "ZERO Tier 0"})</span>
+          </div>
+
+          <div className="input-row">
+            <input
+              type="text"
+              placeholder={t.payeeKeyPlaceholder}
+              value={newPayeePixKey}
+              onChange={(e) => setNewPayeePixKey(e.target.value)}
+            />
+            <button
+              className="btn-secondary"
+              onClick={() => setNewPayeePixKey(DEMO_PIX_KEY)}
+              title="Use demo Pix key"
+            >
+              {t.btnDemoKey}
+            </button>
+          </div>
+
+          <div className="input-row">
+            <input
+              type="text"
+              placeholder={t.payerAccountPlaceholder}
+              value={newPayerAccountId}
+              onChange={(e) => setNewPayerAccountId(e.target.value)}
+            />
+            <button
+              className="btn-secondary"
+              onClick={() => setNewPayerAccountId(DEMO_PAYER)}
+              title="Use spender account"
+            >
+              {t.btnDemoAccount}
+            </button>
+          </div>
+
+          <div className="input-row">
+            <input
+              type="text"
+              placeholder={t.maxAmountPlaceholder}
+              value={newMaxAmount}
+              onChange={(e) => setNewMaxAmount(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder={t.memoPlaceholder}
+              value={newMemo}
+              onChange={(e) => setNewMemo(e.target.value)}
+            />
+            <button
+              onClick={() => { void handleCreateMandate(); }}
+              disabled={creating || !newPayeePixKey || !newPayerAccountId || !newMaxAmount}
+            >
+              {creating ? t.btnCreating : t.btnCreateMandate}
+            </button>
+          </div>
+
+          {createError && <p className="error" style={{ marginTop: "0.5rem" }}>{createError}</p>}
+
+          {createdMandate && (
+            <div className="result-row">
+              <span className={`badge badge-${createdMandate.status}`}>{createdMandate.status.toUpperCase()}</span>
+              <span className="mono">{createdMandate.mandateId}</span>
+              {createdMandate.hcsSequenceNumber && (
+                <span className="dim">HCS #{createdMandate.hcsSequenceNumber}</span>
+              )}
+            </div>
+          )}
+
+          <div className="wizard-nav">
+            <button className="btn-secondary" onClick={() => setActiveStep(1)}>
+              {t.btnPrev}
+            </button>
+            <button onClick={() => setActiveStep(3)}>
+              {t.btnNextStep3}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3: Execute Payment ────────────────────────────────────── */}
+      {activeStep === 3 && (
+        <div className="card">
+          <h2>
+            <span className="step-num">3</span>
+            {t.payTitle} <span className="endpoint">POST /pay</span>
+          </h2>
+
+          <div className="input-row">
+            <input
+              type="text"
+              className="mono-input"
+              placeholder={t.brCodePlaceholder}
+              value={payBrCode}
+              onChange={(e) => setPayBrCode(e.target.value)}
+            />
+            <button
+              className="btn-secondary"
+              onClick={() => setPayBrCode(DEMO_BRCODE)}
+              title="Fill CRC-valid demo BR Code"
+            >
+              {t.btnSampleBrCode}
+            </button>
+          </div>
+
+          <div className="input-row">
+            <input
+              type="text"
+              placeholder={t.payerAccountPlaceholder}
+              value={payPayerAccountId}
+              onChange={(e) => setPayPayerAccountId(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder={t.amountPlaceholder}
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder={t.mandateIdPlaceholder}
+              value={payMandateId}
+              onChange={(e) => setPayMandateId(e.target.value)}
+            />
+          </div>
+
+          <button
+            className="btn-pay"
+            onClick={() => { void handlePay(); }}
+            disabled={paying || !payBrCode || !payPayerAccountId || !payAmount || !payMandateId}
+          >
+            {paying ? t.btnProcessingPay : t.btnExecutePay}
+          </button>
+
+          {payError && <p className="error" style={{ marginTop: "0.75rem" }}>{payError}</p>}
+
+          {payResult && (
+            <div className={`decision-box decision-${payResult.decision}`}>
+              <div className="decision-header">
+                <span className={`badge badge-${payResult.decision}`}>
+                  {payResult.decision === "approved" ? t.decisionApproved : t.decisionRejected}
+                </span>
+                <span className="decision-reason">{payResult.reason}</span>
+              </div>
+              <div className="decision-meta">
+                {payResult.payeePixKey && (
+                  <span className="dim">{t.payeeKeyLabel} <span className="mono">{payResult.payeePixKey}</span></span>
+                )}
+                {payResult.endToEndId && (
+                  <span className="dim">{t.e2eIdLabel} <span className="mono">{payResult.endToEndId}</span></span>
+                )}
+                {payResult.hcsSequenceNumber && (
+                  <span className="dim">{t.hcsSeqLabel} #{payResult.hcsSequenceNumber}</span>
+                )}
+                {payResult.hashscanUrl && (
+                  <a href={payResult.hashscanUrl} target="_blank" rel="noreferrer">
+                    {t.viewHashscan}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="wizard-nav">
+            <button className="btn-secondary" onClick={() => setActiveStep(2)}>
+              {t.btnPrev}
+            </button>
+            <button onClick={() => setActiveStep(4)}>
+              {t.btnNextStep4}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 4: HCS Audit Trail & Mandate Lookup ───────────────────── */}
+      {activeStep === 4 && (
+        <>
+          {/* HCS Audit Trail */}
+          <div className="card">
+            <h2>
+              <span>{t.auditTitle}</span>
+              <span className="dim" style={{ fontWeight: 400, fontSize: "0.8rem", marginLeft: "auto" }}>
+                <span className="pulse-dot"></span>
+                {lastHcsRefresh ? `updated ${lastHcsRefresh.toLocaleTimeString()}` : "loading…"}
+              </span>
+              <button
+                onClick={() => { void refreshHcs(); }}
+                disabled={loadingHcs}
+                className="btn-secondary"
+                style={{ marginLeft: "0.75rem" }}
+              >
+                {loadingHcs ? "…" : t.btnRefreshFeed}
+              </button>
+            </h2>
+
+            {hcsError && <p className="error">{hcsError}</p>}
+
+            {!hcsError && hcsEntries.length === 0 && !loadingHcs && (
+              <p className="empty">{t.noAuditRecords}</p>
+            )}
+
+            {hcsEntries.length > 0 && (
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{t.seqHeader}</th>
+                      <th>{t.timeHeader}</th>
+                      <th>{t.eventHeader}</th>
+                      <th>{t.hashscanHeader}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hcsEntries.map((entry) => (
+                      <tr key={entry.sequenceNumber}>
+                        <td className="mono" style={{ fontWeight: 700 }}>#{entry.sequenceNumber}</td>
+                        <td className="dim">
+                          {new Date(
+                            Number(entry.consensusTimestamp.replace(".", "").slice(0, 13))
+                          ).toLocaleTimeString()}
+                        </td>
+                        <td style={{ maxWidth: "420px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {parseHcsMessage(entry.message)}
+                        </td>
+                        <td>
+                          <a href={entry.hashScanUrl} target="_blank" rel="noreferrer">
+                            View ↗
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* ── STEP 2: Execute Payment ────────────────────────────────────── */}
-      <div className="card">
-        <h2>
-          <span className="step-num">2</span>
-          Execute Payment &amp; HIP-336 Allowance Check <span className="endpoint">POST /pay</span>
-        </h2>
-        <div className="input-row">
-          <input
-            type="text"
-            className="mono-input"
-            placeholder="BR Code (EMV QR string — paste or scan)"
-            value={payBrCode}
-            onChange={(e) => setPayBrCode(e.target.value)}
-          />
-          <button
-            className="btn-secondary"
-            onClick={() => setPayBrCode(DEMO_BRCODE)}
-            title="Fill CRC-valid demo BR Code"
-          >
-            Sample BR Code
-          </button>
-        </div>
-        <div className="input-row">
-          <input
-            type="text"
-            placeholder="Payer account (0.0.XXXXX)"
-            value={payPayerAccountId}
-            onChange={(e) => setPayPayerAccountId(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Amount BRL (e.g. 1.00 for approve, 999.00 for RECUSA)"
-            value={payAmount}
-            onChange={(e) => setPayAmount(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Mandate ID (auto-filled from Step 1)"
-            value={payMandateId}
-            onChange={(e) => setPayMandateId(e.target.value)}
-          />
-        </div>
-        <button
-          className="btn-pay"
-          onClick={() => { void handlePay(); }}
-          disabled={paying || !payBrCode || !payPayerAccountId || !payAmount || !payMandateId}
-        >
-          {paying ? "Processing Hedera Ledger Check…" : "▶ Execute Pix Payment"}
-        </button>
-
-        {payError && <p className="error" style={{ marginTop: "0.75rem" }}>{payError}</p>}
-
-        {payResult && (
-          <div className={`decision-box decision-${payResult.decision}`}>
-            <div className="decision-header">
-              <span className={`badge badge-${payResult.decision}`}>
-                {payResult.decision.toUpperCase()}
-              </span>
-              <span className="decision-reason">{payResult.reason}</span>
+          {/* Mandate Lookup Utility */}
+          <div className="card">
+            <h2>
+              {t.lookupTitle} <span className="endpoint">GET /mandates/:id</span>
+            </h2>
+            <div className="input-row">
+              <input
+                type="text"
+                placeholder={t.mandateIdPlaceholder}
+                value={mandateId}
+                onChange={(e) => setMandateId(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void lookupMandate()}
+              />
+              <button onClick={() => { void lookupMandate(); }} disabled={loadingMandate || !mandateId.trim()}>
+                {loadingMandate ? t.lookupLoading : t.lookupBtn}
+              </button>
             </div>
-            <div className="decision-meta">
-              {payResult.payeePixKey && (
-                <span className="dim">Payee Key: <span className="mono">{payResult.payeePixKey}</span></span>
-              )}
-              {payResult.endToEndId && (
-                <span className="dim">Pix E2E ID: <span className="mono">{payResult.endToEndId}</span></span>
-              )}
-              {payResult.hcsSequenceNumber && (
-                <span className="dim">HCS Audit Sequence: #{payResult.hcsSequenceNumber}</span>
-              )}
-              {payResult.hashscanUrl && (
-                <a href={payResult.hashscanUrl} target="_blank" rel="noreferrer">
-                  View Topic on HashScan ↗
-                </a>
-              )}
-            </div>
+
+            {mandateError && <p className="error">{mandateError}</p>}
+
+            {mandate && (
+              <div style={{ marginTop: "0.75rem" }}>
+                <div className="field"><label>Status</label><span><span className={`badge badge-${mandate.status}`}>{mandate.status.toUpperCase()}</span></span></div>
+                <div className="field"><label>Payee Pix Key</label><span className="mono">{mandate.payeePixKey}</span></div>
+                <div className="field"><label>Payer Account</label><span className="mono">{mandate.payerAccountId}</span></div>
+                <div className="field"><label>Max Amount</label><span>{mandate.maxAmount} BRL</span></div>
+                <div className="field"><label>Created At</label><span>{new Date(mandate.createdAt).toLocaleString()}</span></div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* ── STEP 3: Mandate Lookup ──────────────────────────────────────── */}
-      <div className="card">
-        <h2>
-          <span className="step-num">3</span>
-          Mandate Lookup <span className="endpoint">GET /mandates/:id</span>
-        </h2>
-        <div className="input-row">
-          <input
-            type="text"
-            placeholder="Paste Mandate ID"
-            value={mandateId}
-            onChange={(e) => setMandateId(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && void lookupMandate()}
-          />
-          <button onClick={() => { void lookupMandate(); }} disabled={loadingMandate || !mandateId.trim()}>
-            {loadingMandate ? "Loading…" : "Look Up Mandate"}
-          </button>
-        </div>
-
-        {mandateError && <p className="error">{mandateError}</p>}
-
-        {mandate && (
-          <div style={{ marginTop: "0.75rem" }}>
-            <div className="field"><label>Status</label><span><span className={`badge badge-${mandate.status}`}>{mandate.status.toUpperCase()}</span></span></div>
-            <div className="field"><label>Payee Pix Key</label><span className="mono">{mandate.payeePixKey}</span></div>
-            <div className="field"><label>Payer Account</label><span className="mono">{mandate.payerAccountId}</span></div>
-            <div className="field"><label>Max Amount</label><span>{mandate.maxAmount} BRL</span></div>
-            <div className="field"><label>Created At</label><span>{new Date(mandate.createdAt).toLocaleString()}</span></div>
+          <div className="wizard-nav" style={{ marginTop: "0.5rem" }}>
+            <button className="btn-secondary" onClick={() => setActiveStep(3)}>
+              {t.btnPrev}
+            </button>
+            <button onClick={() => setActiveStep(1)}>
+              {lang === "pt" ? "🔄 Reiniciar Wizard" : "🔄 Restart Wizard"}
+            </button>
           </div>
-        )}
-
-        {!mandate && !mandateError && !loadingMandate && (
-          <p className="empty">Enter a mandate ID above to view its on-chain status.</p>
-        )}
-      </div>
-
-      {/* ── STEP 4: HCS Audit Trail ─────────────────────────────────────── */}
-      <div className="card">
-        <h2>
-          <span>HCS Audit Trail (Hedera Consensus Service)</span>
-          <span className="dim" style={{ fontWeight: 400, fontSize: "0.8rem", marginLeft: "auto" }}>
-            <span className="pulse-dot"></span>
-            {lastHcsRefresh ? `updated ${lastHcsRefresh.toLocaleTimeString()}` : "loading…"}
-          </span>
-          <button
-            onClick={() => { void refreshHcs(); }}
-            disabled={loadingHcs}
-            className="btn-secondary"
-            style={{ marginLeft: "0.75rem" }}
-          >
-            {loadingHcs ? "…" : "Refresh Feed"}
-          </button>
-        </h2>
-
-        {hcsError && <p className="error">{hcsError}</p>}
-
-        {!hcsError && hcsEntries.length === 0 && !loadingHcs && (
-          <p className="empty">No HCS audit records retrieved yet. Execute a payment to see live consensus entries.</p>
-        )}
-
-        {hcsEntries.length > 0 && (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Seq #</th>
-                  <th>Consensus Time</th>
-                  <th>Event Summary</th>
-                  <th>HashScan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hcsEntries.map((entry) => (
-                  <tr key={entry.sequenceNumber}>
-                    <td className="mono" style={{ fontWeight: 700 }}>#{entry.sequenceNumber}</td>
-                    <td className="dim">
-                      {new Date(
-                        Number(entry.consensusTimestamp.replace(".", "").slice(0, 13))
-                      ).toLocaleTimeString()}
-                    </td>
-                    <td style={{ maxWidth: "420px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {parseHcsMessage(entry.message)}
-                    </td>
-                    <td>
-                      <a href={entry.hashScanUrl} target="_blank" rel="noreferrer">
-                        View ↗
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
