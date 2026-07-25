@@ -101,9 +101,18 @@ Evidence: `rg` check above returns zero results; stack is Node/TypeScript + nati
 **Claim**: PIXPORT's gateway acts as an autonomous payment agent. It operates within a cryptographically enforced mandate (HIP-336 allowance) and executes Pix payments without per-transaction human approval, within bounds set by the treasury on-chain.
 
 ### World Identity Check Beta
-**Claim**: Every new PIXPORT mandate holder must pass World ID verification (via IDKit). The ZK proof ensures one mandate per unique human, preventing Sybil and duplicate mandate fraud.
+**Claim**: Every payment decision runs through **World Identity Check (Beta)** (`verifyCloudProof`, level `orb`). The result sets the HIP-336 allowance tier — verified humans can pay within HIGH tier; device-only is capped; unverified is rejected (`TIER_INSUFFICIENT`) before Pix is called.
 
-Dev path: [packages/agent/DEV_TEST.md](./packages/agent/DEV_TEST.md). End-user flow docs: [WORLD-ID-DOCS.md](./WORLD-ID-DOCS.md) (in progress).
+| Identity Check | Tier | Max / payment | Demo |
+|----------------|------|---------------|------|
+| **orb** (Identity Check ✓) | HIGH | 10,000 BRL | APPROVE at 1 BRL |
+| **device** (not Identity Check) | MEDIUM | 1,000 BRL | REJECT at 1,500 BRL |
+| **none** | ZERO | 0 | REJECT immediately |
+
+**Test docs (dev + user, with screenshots):** [docs/WORLD-IDENTITY-CHECK.md](./docs/WORLD-IDENTITY-CHECK.md)  
+**Engineer path:** [packages/agent/DEV_TEST.md](./packages/agent/DEV_TEST.md)  
+**One-command judge demo:** `WORLD_MOCK=true GATEWAY_MOCK=true ALLOWANCE_MOCK=true npm run demo -w packages/agent` → 1 APPROVE + 3 REJECT  
+**HCS audit:** [topic 0.0.9742958](https://hashscan.io/testnet/topic/0.0.9742958)
 
 ---
 
@@ -241,10 +250,12 @@ pixport/
 ├── packages/
 │   ├── hedera/           # HTS · HCS · HIP-336 · Scheduled TX scripts
 │   ├── gateway/          # Express API — Pix mandate enforcement
-│   ├── agent/            # Agentic path + World IDKit dev docs
+│   ├── agent/            # Agentic path + World Identity Check gate
 │   └── console/          # Operator UI
 ├── docs/
-│   └── TESTNET-METRICS.md  # Living Success (20%) counters
+│   ├── TESTNET-METRICS.md          # Living Success (20%) counters
+│   ├── WORLD-IDENTITY-CHECK.md     # Dev + user Identity Check tests + screenshots
+│   └── world-identity-check/       # Terminal SVG captures + flow diagrams
 ├── .env.example
 ├── HACKATHON-PRD.md      # PRD with score prediction
 ├── VALIDATION.md         # External tester evidence (≥3 independent)

@@ -29,7 +29,7 @@ World ID integration ensures that every new Pix mandate holder is a verified uni
 **Hackathon Track Alignment**:
 - **Hedera AI & Agentic Payments** — spender sub-agents operate autonomously within on-chain mandate bounds
 - **Hedera No-Solidity** — 100% `@hashgraph/sdk` (Hiero); zero Solidity, zero EVM
-- **World Identity Check Beta** — World ID verification required to receive a Pix mandate
+- **World Identity Check Beta** — Identity Check (`orb` via `verifyCloudProof`) sets the HIP-336 allowance tier per payment; device/none are capped or rejected. Judge docs: [docs/WORLD-IDENTITY-CHECK.md](./docs/WORLD-IDENTITY-CHECK.md)
 
 ### Key Features (MVP)
 
@@ -62,7 +62,7 @@ World ID integration ensures that every new Pix mandate holder is a verified uni
 | Partner / Platform | Integration | Value Added |
 |--------------------|------------|-------------|
 | **HashScan** | Live testnet evidence links in README | Judges can verify every on-chain action independently |
-| **World ID (IDKit)** | Human verification before mandate issuance | Prevents Sybil/duplicate mandate fraud; qualifies for World Identity Check Beta prize |
+| **World Identity Check (Beta)** | `verifyCloudProof` gate → tier (orb 1M / device 100k / none 0) → HIP-336 | Prevents Sybil + enforces spend tier; prize docs in [docs/WORLD-IDENTITY-CHECK.md](./docs/WORLD-IDENTITY-CHECK.md) |
 | **Banco Inter Pix API** | Real R$0.01 live payment at demo close | Proves full-stack integration beyond testnet simulation |
 
 ### Architecture Diagram
@@ -224,7 +224,8 @@ Web2-only mandate enforcement requires every party to trust a centralised databa
 | Milestone | Target | Timeline |
 |-----------|--------|----------|
 | ≥3 external testers (non-team) | 3 testers with written feedback | Before submission Sunday |
-| Dev path tested (World IDKit + gateway) | Screenshot of successful World ID proof + HCS message | Saturday |
+| Dev path tested (World Identity Check + gateway) | [docs/WORLD-IDENTITY-CHECK.md](./docs/WORLD-IDENTITY-CHECK.md) — demo 1 APPROVE + 3 REJECT + terminal SVGs | Done (Block 3 docs) |
+| User path documented (World App → tier → allowance) | Same doc §3 storyboard + CLI; live phone screenshots before video | Saturday |
 | Real Pix payment executed | HashScan tx + bank statement screenshot | Saturday night |
 | VALIDATION.md with real quotes | ≥3 named, quoted testers | Sunday morning |
 

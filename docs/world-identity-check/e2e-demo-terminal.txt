@@ -1,0 +1,81 @@
+
+> @pixport/agent@0.1.0 demo
+> WORLD_MOCK=true GATEWAY_MOCK=true ALLOWANCE_MOCK=true tsx src/e2e-demo.ts
+
+════════════════════════════════════════════════════════════════════
+  PIXPORT — Autonomous Payment Agent E2E Demo
+════════════════════════════════════════════════════════════════════
+
+  Payer account    : 0.0.12345
+  HCS topic        : 0.0.9742958
+  WORLD_MOCK       : true
+  GATEWAY_MOCK     : true
+
+  Identity Check (Beta) tier mapping:
+    orb    (Identity Check ✓) → HIGH   tier — max 1000000 units
+    device (not Identity Check) → MEDIUM tier — max 100000 units
+    none   (no proof)           → ZERO   tier — immediate reject
+
+────────────────────────────────────────────────────────────────────
+  CASE 1 — APPROVE [Identity Check ✓ orb] 1 BRL within allowance
+────────────────────────────────────────────────────────────────────
+[WorldID] MOCK — orb proof accepted without API call [Identity Check ✓]
+[Agent] Identity: Identity Check ✓ (orb) → tier "Orb-verified human" (maxSpend: 1000000)
+[Allowance] MOCK — returning synthetic allowance: remaining=2000000, approved=2000000
+[Agent] Allowance: remaining=2000000, approved=2000000
+[Agent] Decision: APPROVE — calling gateway POST /pay
+[Gateway] MOCK mode — synthetic E2E ID: MOCK-E2E-1784987592864
+[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)
+
+  ▶ Decision   : APPROVE
+    Reason     : Payment approved and executed. E2E ID: MOCK-E2E-1784987592864
+    Tier       : Orb-verified human (max: 1000000)
+    HCS TX ID  : (not logged — check HEDERA credentials)
+
+────────────────────────────────────────────────────────────────────
+  CASE 2 — REJECT [Identity Check ✓ orb] 15000 BRL > orb tier cap (10000 BRL) → TIER_INSUFFICIENT
+────────────────────────────────────────────────────────────────────
+[WorldID] MOCK — orb proof accepted without API call [Identity Check ✓]
+[Agent] Identity: Identity Check ✓ (orb) → tier "Orb-verified human" (maxSpend: 1000000)
+[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)
+
+  ▶ Decision   : REJECT
+    Reason     : Identity Check tier "Orb-verified human" allows max 1000000 units per payment; requested 1500000. Complete World Identity Check (orb verification) for the 1000000-unit limit.
+    Code       : TIER_INSUFFICIENT
+    HCS TX ID  : (not logged — check HEDERA credentials)
+
+────────────────────────────────────────────────────────────────────
+  CASE 3 — REJECT [device-verified, NOT Identity Check] 1500 BRL > device tier cap (1000 BRL) → TIER_INSUFFICIENT
+────────────────────────────────────────────────────────────────────
+[WorldID] MOCK — device proof accepted without API call [device-only, not Identity Check]
+[Agent] Identity: device-verified (not Identity Check) → tier "Device-verified" (maxSpend: 100000)
+[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)
+
+  ▶ Decision   : REJECT
+    Reason     : Identity Check tier "Device-verified" allows max 100000 units per payment; requested 150000. Complete World Identity Check (orb verification) for the 1000000-unit limit.
+    Code       : TIER_INSUFFICIENT
+    HCS TX ID  : (not logged — check HEDERA credentials)
+
+────────────────────────────────────────────────────────────────────
+  CASE 4 — REJECT [no World ID proof] → TIER_INSUFFICIENT (Identity Check required)
+────────────────────────────────────────────────────────────────────
+[Agent] Identity: unverified → tier "Unverified" (maxSpend: 0)
+[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)
+
+  ▶ Decision   : REJECT
+    Reason     : No World ID proof provided — Identity Check required
+    Code       : TIER_INSUFFICIENT
+    HCS TX ID  : (not logged — check HEDERA credentials)
+
+════════════════════════════════════════════════════════════════════
+  Demo Summary
+════════════════════════════════════════════════════════════════════
+
+  Case 1 APPROVE — Identity Check ✓ (orb),   1 BRL within allowance         : APPROVE
+  Case 2 REJECT  — Identity Check ✓ (orb),   15000 BRL > orb tier cap       : REJECT
+  Case 3 REJECT  — device-verified (no IC),  1500 BRL > device tier cap     : REJECT
+  Case 4 REJECT  — no proof at all                                          : REJECT
+
+  HCS Audit Topic  : https://hashscan.io/testnet/topic/0.0.9742958
+  HashScan Browse  : https://hashscan.io/testnet/
+

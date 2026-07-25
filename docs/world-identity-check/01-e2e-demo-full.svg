@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="1444" viewBox="0 0 920 1444">
+<rect width="100%" height="100%" rx="12" fill="#0d1117"/>
+<rect x="0" y="0" width="100%" height="44" rx="12" fill="#161b22"/>
+<circle cx="22" cy="22" r="6" fill="#ff5f56"/>
+<circle cx="42" cy="22" r="6" fill="#ffbd2e"/>
+<circle cx="62" cy="22" r="6" fill="#27c93f"/>
+<text x="86" y="27" fill="#8b949e" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13">npm run demo -w packages/agent  ·  WORLD_MOCK=true</text>
+<text x="16" y="60" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">════════════════════════════════════════════════════════════════════</text>
+<text x="16" y="78" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  PIXPORT — Autonomous Payment Agent E2E Demo</text>
+<text x="16" y="96" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">════════════════════════════════════════════════════════════════════</text>
+<text x="16" y="114" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="132" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  Payer account    : 0.0.12345</text>
+<text x="16" y="150" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  HCS topic        : 0.0.9742958</text>
+<text x="16" y="168" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  WORLD_MOCK       : true</text>
+<text x="16" y="186" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  GATEWAY_MOCK     : true</text>
+<text x="16" y="204" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="222" fill="#7aa2ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  Identity Check (Beta) tier mapping:</text>
+<text x="16" y="240" fill="#7aa2ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    orb    (Identity Check ✓) → HIGH   tier — max 1000000 units</text>
+<text x="16" y="258" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    device (not Identity Check) → MEDIUM tier — max 100000 units</text>
+<text x="16" y="276" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    none   (no proof)           → ZERO   tier — immediate reject</text>
+<text x="16" y="294" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="312" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="330" fill="#3dd68c" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  CASE 1 — APPROVE [Identity Check ✓ orb] 1 BRL within allowance</text>
+<text x="16" y="348" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="366" fill="#7aa2ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[WorldID] MOCK — orb proof accepted without API call [Identity Check ✓]</text>
+<text x="16" y="384" fill="#7aa2ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Identity: Identity Check ✓ (orb) → tier "Orb-verified human" (maxSpend: 1000000)</text>
+<text x="16" y="402" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Allowance] MOCK — returning synthetic allowance: remaining=2000000, approved=2000000</text>
+<text x="16" y="420" fill="#e0c36a" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Allowance: remaining=2000000, approved=2000000</text>
+<text x="16" y="438" fill="#3dd68c" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Decision: APPROVE — calling gateway POST /pay</text>
+<text x="16" y="456" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Gateway] MOCK mode — synthetic E2E ID: MOCK-E2E-1784987592864</text>
+<text x="16" y="474" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)</text>
+<text x="16" y="492" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="510" fill="#3dd68c" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  ▶ Decision   : APPROVE</text>
+<text x="16" y="528" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Reason     : Payment approved and executed. E2E ID: MOCK-E2E-1784987592864</text>
+<text x="16" y="546" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Tier       : Orb-verified human (max: 1000000)</text>
+<text x="16" y="564" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    HCS TX ID  : (not logged — check HEDERA credentials)</text>
+<text x="16" y="582" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="600" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="618" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  CASE 2 — REJECT [Identity Check ✓ orb] 15000 BRL &gt; orb tier cap (10000 BRL) → TIER_INSUFFICIENT</text>
+<text x="16" y="636" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="654" fill="#7aa2ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[WorldID] MOCK — orb proof accepted without API call [Identity Check ✓]</text>
+<text x="16" y="672" fill="#7aa2ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Identity: Identity Check ✓ (orb) → tier "Orb-verified human" (maxSpend: 1000000)</text>
+<text x="16" y="690" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)</text>
+<text x="16" y="708" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="726" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  ▶ Decision   : REJECT</text>
+<text x="16" y="744" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Reason     : Identity Check tier "Orb-verified human" allows max 1000000 units per payment; requested 1500000. Complete World Identity Check (orb verification) for the 1000000-unit limit.</text>
+<text x="16" y="762" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Code       : TIER_INSUFFICIENT</text>
+<text x="16" y="780" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    HCS TX ID  : (not logged — check HEDERA credentials)</text>
+<text x="16" y="798" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="816" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="834" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  CASE 3 — REJECT [device-verified, NOT Identity Check] 1500 BRL &gt; device tier cap (1000 BRL) → TIER_INSUFFICIENT</text>
+<text x="16" y="852" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="870" fill="#e0c36a" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[WorldID] MOCK — device proof accepted without API call [device-only, not Identity Check]</text>
+<text x="16" y="888" fill="#e0c36a" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Identity: device-verified (not Identity Check) → tier "Device-verified" (maxSpend: 100000)</text>
+<text x="16" y="906" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)</text>
+<text x="16" y="924" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="942" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  ▶ Decision   : REJECT</text>
+<text x="16" y="960" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Reason     : Identity Check tier "Device-verified" allows max 100000 units per payment; requested 150000. Complete World Identity Check (orb verification) for the 1000000-unit limit.</text>
+<text x="16" y="978" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Code       : TIER_INSUFFICIENT</text>
+<text x="16" y="996" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    HCS TX ID  : (not logged — check HEDERA credentials)</text>
+<text x="16" y="1014" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="1032" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="1050" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  CASE 4 — REJECT [no World ID proof] → TIER_INSUFFICIENT (Identity Check required)</text>
+<text x="16" y="1068" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="1086" fill="#e0c36a" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Identity: unverified → tier "Unverified" (maxSpend: 0)</text>
+<text x="16" y="1104" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)</text>
+<text x="16" y="1122" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="1140" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  ▶ Decision   : REJECT</text>
+<text x="16" y="1158" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Reason     : No World ID proof provided — Identity Check required</text>
+<text x="16" y="1176" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Code       : TIER_INSUFFICIENT</text>
+<text x="16" y="1194" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    HCS TX ID  : (not logged — check HEDERA credentials)</text>
+<text x="16" y="1212" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="1230" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">════════════════════════════════════════════════════════════════════</text>
+<text x="16" y="1248" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  Demo Summary</text>
+<text x="16" y="1266" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">════════════════════════════════════════════════════════════════════</text>
+<text x="16" y="1284" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="1302" fill="#3dd68c" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  Case 1 APPROVE — Identity Check ✓ (orb),   1 BRL within allowance         : APPROVE</text>
+<text x="16" y="1320" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  Case 2 REJECT  — Identity Check ✓ (orb),   15000 BRL &gt; orb tier cap       : REJECT</text>
+<text x="16" y="1338" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  Case 3 REJECT  — device-verified (no IC),  1500 BRL &gt; device tier cap     : REJECT</text>
+<text x="16" y="1356" fill="#ff6b6b" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  Case 4 REJECT  — no proof at all                                          : REJECT</text>
+<text x="16" y="1374" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="1392" fill="#6ec6ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  HCS Audit Topic  : https://hashscan.io/testnet/topic/0.0.9742958</text>
+<text x="16" y="1410" fill="#6ec6ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  HashScan Browse  : https://hashscan.io/testnet/</text>
+</svg>

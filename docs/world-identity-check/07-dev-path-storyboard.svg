@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="300" viewBox="0 0 980 300">
+  <rect width="100%" height="100%" rx="12" fill="#0d1117"/>
+  <text x="40" y="40" fill="#e6edf3" font-family="Inter,system-ui,sans-serif" font-size="20" font-weight="700">Dev / judge path — no phone required</text>
+  <g font-family="Inter,system-ui,sans-serif" font-size="12">
+    <rect x="40" y="80" width="280" height="160" rx="10" fill="#161b22" stroke="#1f6feb"/>
+    <text x="180" y="110" text-anchor="middle" fill="#79c0ff" font-weight="700">Path A — Staging Simulator</text>
+    <text x="180" y="140" text-anchor="middle" fill="#8b949e">developer.worldcoin.org → staging app</text>
+    <text x="180" y="160" text-anchor="middle" fill="#8b949e">simulator.worldcoin.org → orb proof</text>
+    <text x="180" y="180" text-anchor="middle" fill="#8b949e">npm run pay  (real Cloud API verify)</text>
+    <text x="180" y="210" text-anchor="middle" fill="#56d364">cryptographic proof · no phone</text>
+
+    <rect x="350" y="80" width="280" height="160" rx="10" fill="#161b22" stroke="#3fb950"/>
+    <text x="490" y="110" text-anchor="middle" fill="#56d364" font-weight="700">Path B — Mock (CI / 5s)</text>
+    <text x="490" y="140" text-anchor="middle" fill="#8b949e">WORLD_MOCK=true</text>
+    <text x="490" y="160" text-anchor="middle" fill="#8b949e">GATEWAY_MOCK=true</text>
+    <text x="490" y="180" text-anchor="middle" fill="#8b949e">ALLOWANCE_MOCK=true</text>
+    <text x="490" y="210" text-anchor="middle" fill="#56d364">npm run demo → 4 cases pass</text>
+
+    <rect x="660" y="80" width="280" height="160" rx="10" fill="#161b22" stroke="#f85149"/>
+    <text x="800" y="110" text-anchor="middle" fill="#ff7b72" font-weight="700">Path C/D — Rejection</text>
+    <text x="800" y="140" text-anchor="middle" fill="#8b949e">omit worldIdProof</text>
+    <text x="800" y="160" text-anchor="middle" fill="#8b949e">or device + over-cap amount</text>
+    <text x="800" y="180" text-anchor="middle" fill="#8b949e">expect TIER_INSUFFICIENT</text>
+    <text x="800" y="210" text-anchor="middle" fill="#ff7b72">proves gate is real</text>
+  </g>
+</svg>

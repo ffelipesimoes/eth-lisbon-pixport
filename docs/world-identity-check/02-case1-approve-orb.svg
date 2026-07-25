@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="364" viewBox="0 0 920 364">
+<rect width="100%" height="100%" rx="12" fill="#0d1117"/>
+<rect x="0" y="0" width="100%" height="44" rx="12" fill="#161b22"/>
+<circle cx="22" cy="22" r="6" fill="#ff5f56"/>
+<circle cx="42" cy="22" r="6" fill="#ffbd2e"/>
+<circle cx="62" cy="22" r="6" fill="#27c93f"/>
+<text x="86" y="27" fill="#8b949e" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="13">Case 1 — Identity Check ✓ (orb) → APPROVE</text>
+<text x="16" y="60" fill="#3dd68c" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  CASE 1 — APPROVE [Identity Check ✓ orb] 1 BRL within allowance</text>
+<text x="16" y="78" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+<text x="16" y="96" fill="#7aa2ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[WorldID] MOCK — orb proof accepted without API call [Identity Check ✓]</text>
+<text x="16" y="114" fill="#7aa2ff" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Identity: Identity Check ✓ (orb) → tier "Orb-verified human" (maxSpend: 1000000)</text>
+<text x="16" y="132" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Allowance] MOCK — returning synthetic allowance: remaining=2000000, approved=2000000</text>
+<text x="16" y="150" fill="#e0c36a" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Allowance: remaining=2000000, approved=2000000</text>
+<text x="16" y="168" fill="#3dd68c" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Agent] Decision: APPROVE — calling gateway POST /pay</text>
+<text x="16" y="186" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[Gateway] MOCK mode — synthetic E2E ID: MOCK-E2E-1784987592864</text>
+<text x="16" y="204" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">[HCS] Topic ID not configured — skipping HCS audit log (set HEDERA_HCS_TOPIC_ID)</text>
+<text x="16" y="222" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="240" fill="#3dd68c" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">  ▶ Decision   : APPROVE</text>
+<text x="16" y="258" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Reason     : Payment approved and executed. E2E ID: MOCK-E2E-1784987592864</text>
+<text x="16" y="276" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    Tier       : Orb-verified human (max: 1000000)</text>
+<text x="16" y="294" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">    HCS TX ID  : (not logged — check HEDERA credentials)</text>
+<text x="16" y="312" fill="#c8d0d8" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5"></text>
+<text x="16" y="330" fill="#5a6570" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12.5">────────────────────────────────────────────────────────────────────</text>
+</svg>
