@@ -351,6 +351,10 @@ export default function ConsolePage() {
             </div>
           </div>
 
+          <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(168, 85, 247, 0.1)", border: "1px solid rgba(168, 85, 247, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#f0abfc", fontWeight: 600 }}>
+            {t.step1Badge}
+          </div>
+
           <div className="wizard-nav">
             <span className="dim" style={{ fontSize: "0.8rem" }}>
               {lang === "pt" ? "Nível de identidade selecionado: " : "Selected identity level: "}
@@ -449,6 +453,10 @@ export default function ConsolePage() {
               )}
             </div>
           )}
+
+          <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#93c5fd", fontWeight: 600 }}>
+            {t.step2Badge}
+          </div>
 
           <div className="wizard-nav">
             <button className="btn-secondary" onClick={() => setActiveStep(1)}>
@@ -554,6 +562,10 @@ export default function ConsolePage() {
             </div>
           )}
 
+          <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(52, 211, 153, 0.1)", border: "1px solid rgba(52, 211, 153, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#6ee7b7", fontWeight: 600 }}>
+            {t.step3Badge}
+          </div>
+
           <div className="wizard-nav">
             <button className="btn-secondary" onClick={() => setActiveStep(2)}>
               {t.btnPrev}
@@ -626,6 +638,10 @@ export default function ConsolePage() {
                 </table>
               </div>
             )}
+
+            <div style={{ marginTop: "1.25rem", padding: "0.55rem 0.85rem", background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: "8px", fontSize: "0.78rem", color: "#fde047", fontWeight: 600 }}>
+              {t.step4Badge}
+            </div>
           </div>
 
           {/* Mandate Lookup Utility */}

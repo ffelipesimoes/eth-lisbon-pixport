@@ -177,8 +177,8 @@ Living log (re-runnable): [docs/TESTNET-METRICS.md](./docs/TESTNET-METRICS.md). 
 ### 1 — Clone and install
 
 ```bash
-git clone https://github.com/YOUR_ORG/pixport.git
-cd pixport
+git clone https://github.com/ffelipesimoes/eth-lisbon-pixport.git
+cd eth-lisbon-pixport
 npm install
 cp .env.example .env
 ```

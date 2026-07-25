@@ -84,6 +84,12 @@ export const translations = {
     lookupTitle: "Mandate Status Lookup",
     lookupBtn: "Look Up",
     lookupLoading: "Loading...",
+
+    // Feature Badges
+    step1Badge: "🛡️ Target Track: World Identity Check (Beta ZK Proof Gate)",
+    step2Badge: "🪙 Target Track: HTS Token (0.0.9742957) + HIP-336 Native Allowance (No Solidity)",
+    step3Badge: "⚡ Target Track: Real Pix Payout + On-Chain RECUSA (AMOUNT_EXCEEDS_ALLOWANCE)",
+    step4Badge: "📜 Target Track: Hedera Consensus Service (Topic 0.0.9742958) + Mirror Node REST",
   },
   pt: {
     headerTitle: "PIXPORT",
@@ -168,5 +174,11 @@ export const translations = {
     lookupTitle: "Consulta de Status de Mandato",
     lookupBtn: "Buscar",
     lookupLoading: "Buscando...",
+
+    // Feature Badges
+    step1Badge: "🛡️ Trilha Alvo: Verificação World ID (Beta ZK Proof Gate)",
+    step2Badge: "🪙 Trilha Alvo: HTS Token (0.0.9742957) + HIP-336 Native Allowance (Sem Solidity)",
+    step3Badge: "⚡ Trilha Alvo: Liquidação Pix + RECUSA On-Chain (AMOUNT_EXCEEDS_ALLOWANCE)",
+    step4Badge: "📜 Trilha Alvo: Hedera Consensus Service (Tópico 0.0.9742958) + Mirror Node REST",
   },
 };
