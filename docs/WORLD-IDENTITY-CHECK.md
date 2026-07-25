@@ -29,7 +29,7 @@ BR Code → World Identity Check (Beta) → AllowanceTier → HIP-336 check → 
 **SDK:** server-side `verifyCloudProof()` from `@worldcoin/idkit-core/backend` (v2).  
 **Constant:** `IDENTITY_CHECK_LEVEL = "orb"` in `packages/agent/src/worldid.ts` — only orb counts as Identity Check.
 
-![Identity Check → tier → allowance flow](./world-identity-check/00-flow-identity-to-allowance.svg)
+![Identity Check → tier → allowance flow](./world-identity-check/00-flow-identity-to-allowance.png)
 
 **Why this matters for the prize:** the Identity Check result is not a cosmetic badge. It is the input that chooses the spending tier enforced before Pix is ever called. Unverified payers cannot spend; device-only payers cannot exceed 1,000 BRL; orb (Identity Check) unlocks the HIGH tier used in the happy-path demo.
 
@@ -38,6 +38,8 @@ BR Code → World Identity Check (Beta) → AllowanceTier → HIP-336 check → 
 ## 2. Dev test path (judges — no phone)
 
 ![Dev path storyboard](./world-identity-check/07-dev-path-storyboard.svg)
+
+*(SVG storyboard; terminal evidence below is PNG captured from a real `npm run demo` run.)*
 
 Full step-by-step also lives in [`packages/agent/DEV_TEST.md`](../packages/agent/DEV_TEST.md). Below is the submission-facing summary with **captured terminal output**.
 
@@ -51,13 +53,13 @@ WORLD_MOCK=true GATEWAY_MOCK=true ALLOWANCE_MOCK=true npm run demo -w packages/a
 
 **Captured run (2026-07-25) — exit 0:**
 
-![Full E2E demo terminal](./world-identity-check/01-e2e-demo-full.svg)
+![Full E2E demo terminal](./world-identity-check/01-e2e-demo-full.png)
 
 Raw log: [`world-identity-check/e2e-demo-terminal.txt`](./world-identity-check/e2e-demo-terminal.txt)
 
 #### Case 1 — Identity Check ✓ (orb) → APPROVE
 
-![Case 1 APPROVE](./world-identity-check/02-case1-approve-orb.svg)
+![Case 1 APPROVE](./world-identity-check/02-case1-approve-orb.png)
 
 ```
 [WorldID] MOCK — orb proof accepted without API call [Identity Check ✓]
@@ -68,7 +70,7 @@ Raw log: [`world-identity-check/e2e-demo-terminal.txt`](./world-identity-check/e
 
 #### Case 3 — device only (NOT Identity Check) → REJECT
 
-![Case 3 device reject](./world-identity-check/03-case3-device-reject.svg)
+![Case 3 device reject](./world-identity-check/03-case3-device-reject.png)
 
 ```
 [WorldID] MOCK — device proof accepted without API call [device-only, not Identity Check]
@@ -82,7 +84,7 @@ Raw log: [`world-identity-check/e2e-demo-terminal.txt`](./world-identity-check/e
 
 #### Case 4 — no proof → REJECT
 
-![Case 4 no proof](./world-identity-check/04-case4-no-proof-reject.svg)
+![Case 4 no proof](./world-identity-check/04-case4-no-proof-reject.png)
 
 ```
 [Agent] Identity: unverified → tier "Unverified" (maxSpend: 0)
@@ -93,7 +95,7 @@ Raw log: [`world-identity-check/e2e-demo-terminal.txt`](./world-identity-check/e
 
 #### Summary line judges should see
 
-![Demo summary](./world-identity-check/05-demo-summary.svg)
+![Demo summary](./world-identity-check/05-demo-summary.png)
 
 ```
 Case 1 APPROVE — Identity Check ✓ (orb),   1 BRL within allowance         : APPROVE
@@ -164,7 +166,7 @@ echo '{
 
 ## 3. User test path (real World App)
 
-![User path storyboard](./world-identity-check/06-user-path-storyboard.svg)
+![User path storyboard](./world-identity-check/06-user-path-storyboard.png)
 
 For a real human with **World App + Orb verification** (Identity Check level):
 
@@ -242,7 +244,8 @@ Flow for judges:
 | File | Role |
 |------|------|
 | [`docs/WORLD-IDENTITY-CHECK.md`](./WORLD-IDENTITY-CHECK.md) | **This doc** — prize-facing dev + user paths + screenshots |
-| [`docs/world-identity-check/*.svg`](./world-identity-check/) | Terminal + flow screenshots |
+| [`docs/world-identity-check/*.png`](./world-identity-check/) | Terminal + flow screenshots (PNG) |
+| [`docs/world-identity-check/*.svg`](./world-identity-check/) | Same diagrams as SVG source |
 | [`docs/world-identity-check/e2e-demo-terminal.txt`](./world-identity-check/e2e-demo-terminal.txt) | Raw demo capture |
 | [`packages/agent/DEV_TEST.md`](../packages/agent/DEV_TEST.md) | Engineer-facing path detail (AgentEngineer) |
 | [`packages/agent/src/worldid.ts`](../packages/agent/src/worldid.ts) | `verifyCloudProof` + `IDENTITY_CHECK_LEVEL` |
