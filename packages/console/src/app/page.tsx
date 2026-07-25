@@ -1,10 +1,33 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { MandateStatus, HcsEntry, PayResult } from "../lib/api";
-import { fetchMandateStatus, fetchHcsAudit, createMandate, executePay } from "../lib/api";
+import { IDKitWidget, VerificationLevel, type ISuccessResult } from "@worldcoin/idkit";
+import type {
+  MandateStatus,
+  HcsEntry,
+  PayResult,
+  WorldIdConfig,
+  WorldIdVerifyResult,
+} from "../lib/api";
+import {
+  fetchMandateStatus,
+  fetchHcsAudit,
+  createMandate,
+  executePay,
+  fetchWorldIdConfig,
+  verifyWorldId,
+} from "../lib/api";
 import type { Language } from "../lib/i18n";
 import { translations } from "../lib/i18n";
+
+/**
+ * Stage fallback (documented in docs/world-identity-check-test-report.md):
+ * NEXT_PUBLIC_SKIP_WORLDID=true turns the tier cards into a pre-applied tier
+ * selector — clicking a card submits a mock proof to POST /worldid/verify,
+ * which the gateway answers in WORLD_MOCK mode. The demo never depends on
+ * World portal / simulator reachability.
+ */
+const SKIP_WORLDID = process.env.NEXT_PUBLIC_SKIP_WORLDID === "true";
 
 const DEMO_BRCODE =
   "00020126400014BR.GOV.BCB.PIX0118teste@pixport.demo52040000530398654041.005802BR5912PIXPORT Demo6006Lisboa62070503***630462EF";
@@ -39,6 +62,12 @@ export default function ConsolePage() {
 
   // ── World Identity Check state ───────────────────────────────────────────
   const [selectedWorldLevel, setSelectedWorldLevel] = useState<WorldLevel>("orb");
+  /** Backend verification result — the ONLY trusted source for the tier cap. */
+  const [worldVerify, setWorldVerify] = useState<WorldIdVerifyResult | null>(null);
+  const [worldConfig, setWorldConfig] = useState<WorldIdConfig | null>(null);
+  const [identityPayer, setIdentityPayer] = useState("");
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   // ── Create Mandate state ──────────────────────────────────────────────────
   const [newPayeePixKey, setNewPayeePixKey] = useState("");
@@ -99,6 +128,9 @@ export default function ConsolePage() {
     setMandate(null);
     setMandateError(null);
     setSelectedWorldLevel("orb");
+    setWorldVerify(null);
+    setVerifyError(null);
+    setIdentityPayer("");
     setActiveStep(1);
   }, [handleClearStep2, handleClearStep3]);
 
@@ -128,6 +160,100 @@ export default function ConsolePage() {
     const id = setInterval(() => { void refreshHcs(); }, 10_000);
     return () => clearInterval(id);
   }, [refreshHcs]);
+
+  // Fetch World widget config (app_id/action/mock) from the gateway — single source of truth.
+  useEffect(() => {
+    fetchWorldIdConfig()
+      .then(setWorldConfig)
+      .catch(() => setWorldConfig(null)); // gateway-offline banner already covers this
+  }, []);
+
+  /**
+   * Backend verification — the ONLY source of truth for the tier.
+   * The widget's client-side result is never trusted: the proof goes to
+   * POST /worldid/verify, which runs verifyCloudProof() against the Cloud API
+   * (or trusts the level in WORLD_MOCK stage-fallback mode) and returns the
+   * allowance tier. The displayed/selected level follows the server response.
+   */
+  const runBackendVerify = useCallback(
+    async (proof: ISuccessResult, signal: string) => {
+      setVerifying(true);
+      setVerifyError(null);
+      try {
+        const data = await verifyWorldId({
+          proof: {
+            proof: proof.proof,
+            merkle_root: proof.merkle_root,
+            nullifier_hash: proof.nullifier_hash,
+            verification_level: proof.verification_level as "orb" | "device",
+          },
+          signal,
+        });
+        setWorldVerify(data);
+        setSelectedWorldLevel(data.verified && data.verificationLevel ? data.verificationLevel : "none");
+        if (data.verified && signal) {
+          // Identity is bound to this payer — carry it into the next steps.
+          setNewPayerAccountId(signal);
+          setPayPayerAccountId(signal);
+          // Pick up the IDENTITY_CHECK record in the audit trail (Step 4).
+          setTimeout(() => { void refreshHcs(); }, 2_000);
+        }
+      } catch (err) {
+        setVerifyError(err instanceof Error ? err.message : "Unknown error");
+        setWorldVerify(null);
+      } finally {
+        setVerifying(false);
+      }
+    },
+    [refreshHcs],
+  );
+
+  /**
+   * Tier-card click. Stage fallback (NEXT_PUBLIC_SKIP_WORLDID=true): the card
+   * IS the pre-applied tier selector — a mock proof goes to the backend so the
+   * server still resolves the tier. Live mode: client-side pre-selection only,
+   * explicitly tagged "not verified" until the IDKit flow runs.
+   */
+  const handleCardSelect = useCallback(
+    (level: WorldLevel) => {
+      if (SKIP_WORLDID) {
+        if (level === "none") {
+          setWorldVerify(null);
+          setSelectedWorldLevel("none");
+          return;
+        }
+        if (!identityPayer) {
+          setVerifyError(t.worldSignalRequired);
+          return;
+        }
+        const mockProof = {
+          proof: "0x0000000000000000000000000000000000000000000000000000000000000000",
+          merkle_root: "0x0000000000000000000000000000000000000000000000000000000000000000",
+          // Unique per run so mock sessions stay distinguishable in the HCS trail
+          nullifier_hash: `0xmock${Date.now().toString(16)}`,
+          verification_level: level as VerificationLevel,
+        } as ISuccessResult;
+        void runBackendVerify(mockProof, identityPayer);
+        return;
+      }
+      // Live mode: pre-selection only — backend verification happens via the widget.
+      setSelectedWorldLevel(level);
+      setWorldVerify(null);
+    },
+    [identityPayer, runBackendVerify, t.worldSignalRequired],
+  );
+
+  /** True when the requested amount exceeds the backend-verified tier cap. */
+  const amountExceedsTierCap = (() => {
+    if (!worldVerify?.verified || !payAmount) return false;
+    const parsed = parseFloat(payAmount);
+    if (isNaN(parsed)) return false;
+    try {
+      return BigInt(Math.round(parsed * 100)) > BigInt(worldVerify.tier.maxSpendUnits);
+    } catch {
+      return false;
+    }
+  })();
 
   const handleCreateMandate = useCallback(async () => {
     if (!newPayeePixKey || !newPayerAccountId || !newMaxAmount) return;
@@ -166,6 +292,28 @@ export default function ConsolePage() {
       return;
     }
 
+    // Backend-verified tier cap enforcement — rejected before the Pix call,
+    // same RECUSA pattern as the ZERO-tier path above.
+    if (worldVerify?.verified) {
+      const parsed = parseFloat(payAmount);
+      if (!isNaN(parsed)) {
+        try {
+          if (BigInt(Math.round(parsed * 100)) > BigInt(worldVerify.tier.maxSpendUnits)) {
+            const msg = lang === "pt"
+              ? `Valor excede o teto do tier ${worldVerify.tier.name} (R$ ${worldVerify.tier.maxSpendBrl}) verificado pelo backend.`
+              : `Amount exceeds the backend-verified ${worldVerify.tier.name} tier cap (R$ ${worldVerify.tier.maxSpendBrl}).`;
+            setPayError(msg);
+            setPayResult({
+              decision: "rejected",
+              reason: `TIER_INSUFFICIENT: amount ${payAmount} BRL > ${worldVerify.tier.name} tier cap ${worldVerify.tier.maxSpendBrl} BRL (backend-verified) — rejected before Pix call`,
+              decidedAt: new Date().toISOString(),
+            });
+            return;
+          }
+        } catch { /* fall through to gateway validation */ }
+      }
+    }
+
     setPaying(true);
     setPayError(null);
     setPayResult(null);
@@ -183,7 +331,7 @@ export default function ConsolePage() {
     } finally {
       setPaying(false);
     }
-  }, [payBrCode, payPayerAccountId, payAmount, payMandateId, selectedWorldLevel, lang, refreshHcs]);
+  }, [payBrCode, payPayerAccountId, payAmount, payMandateId, selectedWorldLevel, worldVerify, lang, refreshHcs]);
 
   const lookupMandate = useCallback(async () => {
     if (!mandateId.trim()) return;
