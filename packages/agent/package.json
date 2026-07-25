@@ -1,0 +1,30 @@
+{
+  "name": "@pixport/agent",
+  "version": "0.1.0",
+  "description": "PIXPORT autonomous payment agent — Hedera HIP-336 allowance + World IDKit identity",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "hello-world": "tsx src/hello-world.ts",
+    "pay": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hashgraph/sdk": "2.80.0",
+    "@langchain/anthropic": "^0.3.22",
+    "@langchain/core": "^0.3.58",
+    "@langchain/langgraph": "^0.3.6",
+    "@worldcoin/idkit-standalone": "^2.2.5",
+    "dotenv": "^16.5.0",
+    "hedera-agent-kit": "^3.8.2",
+    "langchain": "^1.2.24",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.8.3"
+  }
+}
