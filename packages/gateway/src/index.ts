@@ -10,14 +10,14 @@ app.use(express.json());
 
 app.use(
   pinoHttp({
-    logger,
-    customSuccessMessage: (req, res, responseTime) =>
+    logger: logger as any,
+    customSuccessMessage: (req: any, res: any, responseTime: number) =>
       `${req.method} ${req.url} ${res.statusCode} (${Math.round(responseTime)}ms)`,
-    customErrorMessage: (req, res, error) =>
+    customErrorMessage: (req: any, res: any, error: Error) =>
       `${req.method} ${req.url} ${res.statusCode} - ${error.message}`,
     serializers: {
-      req: (req) => ({ method: req.method, url: req.url }),
-      res: (res) => ({ statusCode: res.statusCode }),
+      req: (req: any) => ({ method: req.method, url: req.url }),
+      res: (res: any) => ({ statusCode: res.statusCode }),
     },
   })
 );
