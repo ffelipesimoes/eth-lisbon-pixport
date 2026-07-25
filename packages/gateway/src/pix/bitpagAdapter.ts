@@ -79,7 +79,8 @@ export class BitpagPixAdapter implements PixPayoutAdapter {
     private readonly apiKey: string,
     private readonly httpFn: HttpFn = nodeHttpsFn,
   ) {
-    this.baseUrl = creds.apiBaseUrl || DEFAULT_BASE_URL;
+    const raw = (creds.apiBaseUrl || DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
+    this.baseUrl = raw.endsWith("/api") ? raw.slice(0, -4) : raw;
   }
 
   async pay(request: PixPaymentRequest): Promise<PixPaymentResult> {
