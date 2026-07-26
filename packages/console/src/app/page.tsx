@@ -31,8 +31,8 @@ import { translations } from "../lib/i18n";
 const SKIP_WORLDID = process.env.NEXT_PUBLIC_SKIP_WORLDID === "true";
 
 const DEMO_BRCODE =
-  "00020126400014BR.GOV.BCB.PIX0118teste@pixport.demo52040000530398654041.005802BR5912PIXPORT Demo6006Lisboa62070503***630462EF";
-const DEMO_PIX_KEY = "teste@pixport.demo";
+  "00020101021126580014br.gov.bcb.pix013632a5517b-9ede-402d-aad6-1f5ceebb97cc5204000053039865802BR5922FRANCISCO F S DA SILVA6009FORTALEZA62070503***63047E96";
+const DEMO_PIX_KEY = "32a5517b-9ede-402d-aad6-1f5ceebb97cc";
 const DEMO_PAYER = "0.0.9743531";
 
 export type WorldLevel = "orb" | "device" | "none";
@@ -647,7 +647,7 @@ export default function ConsolePage() {
                     addLog(lang === "pt" ? "[AGENTE] Criando Mandato de R$ 5,00 no Gateway Hedera..." : "[AGENT] Registering 5.00 BRL Mandate on Hedera Gateway...", "info");
                     try {
                       const m = await createMandate({
-                        payeePixKey: "teste@pixport.demo",
+                        payeePixKey: DEMO_PIX_KEY,
                         payerAccountId: "0.0.9743531",
                         maxAmount: "5",
                         memo: "[AI Agent Demo] Mandato autônomo de R$ 5,00",
