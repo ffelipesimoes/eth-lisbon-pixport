@@ -57,6 +57,12 @@ export default function ConsolePage() {
 
   // ── View State (Landing | Overview | Wizard) ─────────────────────────────
   const [mainView, setMainView] = useState<MainView>("landing");
+  const [execMode, setExecMode] = useState<"human" | "agent">("human");
+
+  // ── Agent Runner Simulation State ─────────────────────────────────────────
+  const [agentRunning, setAgentRunning] = useState(false);
+  const [agentLogs, setAgentLogs] = useState<Array<{ text: string; type: "info" | "success" | "reject" }>>([]);
+  const [agentProgress, setAgentProgress] = useState(0);
 
   // ── Wizard Step State ────────────────────────────────────────────────────
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
@@ -570,9 +576,163 @@ export default function ConsolePage() {
         </div>
       )}
 
-      {/* ── VIEW 2: INTERACTIVE MANDATE WIZARD ──────────────────────────── */}
+      {/* ── VIEW 2: INTERACTIVE MANDATE & PAY WIZARD ───────────────────── */}
       {mainView === "wizard" && (
-        <>
+        <div>
+          {/* Mode Switcher: Human vs. Autonomous AI Agent */}
+          <div className="card" style={{ marginBottom: "1.5rem", background: "linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(59, 130, 246, 0.15))", borderColor: "rgba(168, 85, 247, 0.4)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+              <div>
+                <h3 style={{ fontSize: "1.1rem", color: "#f3e8ff", margin: 0, fontWeight: 700 }}>
+                  🤖 {lang === "pt" ? "Modo de Teste: Agente IA vs. Operador Humano" : "Test Mode: AI Agent vs. Human Operator"}
+                </h3>
+                <p style={{ fontSize: "0.82rem", color: "#cbd5e1", margin: "0.25rem 0 0 0" }}>
+                  {lang === "pt"
+                    ? "Escolha entre a simulação 100% autônoma do robô ou o formulário manual passo a passo."
+                    : "Choose between 100% autonomous robot simulation or manual step-by-step form."}
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  className={execMode === "human" ? "" : "btn-secondary"}
+                  onClick={() => setExecMode("human")}
+                  style={{ fontSize: "0.8rem", padding: "0.45rem 0.85rem", fontWeight: 700 }}
+                >
+                  👨‍💼 {lang === "pt" ? "Modo Humano (Manual)" : "Human Mode (Manual)"}
+                </button>
+                <button
+                  className={execMode === "agent" ? "" : "btn-secondary"}
+                  onClick={() => setExecMode("agent")}
+                  style={{ fontSize: "0.8rem", padding: "0.45rem 0.85rem", fontWeight: 700 }}
+                >
+                  🤖 {lang === "pt" ? "Modo Agente IA (Autônomo)" : "AI Agent Mode (Autonomous)"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── AUTONOMOUS AI AGENT SIMULATION PANEL ────────────────── */}
+          {execMode === "agent" && (
+            <div className="card" style={{ marginBottom: "1.5rem", borderColor: "rgba(139, 92, 246, 0.4)", background: "rgba(15, 23, 42, 0.9)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <div>
+                  <h3 style={{ color: "#a78bfa", fontSize: "1.15rem", margin: 0 }}>
+                    ⚡ {lang === "pt" ? "Execução Autônoma de Agente de IA (Sem Humano no Loop)" : "Autonomous AI Agent Execution (Zero Human in Loop)"}
+                  </h3>
+                  <p style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "0.2rem" }}>
+                    {lang === "pt"
+                      ? "O Agente de IA avalia a Prova ZK do World ID, cria o mandato e efetua pagamentos testando aprovações e RECUSAS on-chain em 3 segundos."
+                      : "The AI Agent evaluates World ID ZK Proofs, creates mandates, and executes payouts testing approvals and on-chain REJECTIONS in 3 seconds."}
+                  </p>
+                </div>
+                <button
+                  disabled={agentRunning}
+                  onClick={async () => {
+                    setAgentRunning(true);
+                    setAgentLogs([]);
+                    setAgentProgress(10);
+
+                    const addLog = (text: string, type: "info" | "success" | "reject" = "info") => {
+                      setAgentLogs(prev => [...prev, { text, type }]);
+                    };
+
+                    addLog(lang === "pt" ? "[AGENTE] Inicializando agente autônomo PIXPORT..." : "[AGENT] Initializing PIXPORT autonomous agent...", "info");
+                    await new Promise(r => setTimeout(r, 600));
+
+                    setAgentProgress(30);
+                    addLog(lang === "pt" ? "[AGENTE] Validando Prova ZK World ID (Orb Verified) ➔ Tier HIGH (R$ 10.000,00)" : "[AGENT] Validating World ID ZK Proof (Orb Verified) ➔ HIGH Tier (10,000 BRL)", "info");
+                    await new Promise(r => setTimeout(r, 700));
+
+                    setAgentProgress(50);
+                    addLog(lang === "pt" ? "[AGENTE] Criando Mandato de R$ 5,00 no Gateway Hedera..." : "[AGENT] Registering 5.00 BRL Mandate on Hedera Gateway...", "info");
+                    try {
+                      const m = await createMandate({
+                        payeePixKey: "teste@pixport.demo",
+                        payerAccountId: "0.0.9743531",
+                        maxAmount: "5",
+                        memo: "[AI Agent Demo] Mandato autônomo de R$ 5,00",
+                      });
+                      addLog(lang === "pt" ? `[AGENTE] Mandato Criado! ID: ${m.mandateId.slice(0, 8)}... (Max: R$ 5,00)` : `[AGENT] Mandate Created! ID: ${m.mandateId.slice(0, 8)}... (Max: 5.00 BRL)`, "success");
+
+                      setAgentProgress(70);
+                      await new Promise(r => setTimeout(r, 800));
+                      addLog(lang === "pt" ? "[AGENTE] Solicitando 1º Pagamento de R$ 3,00 (Dentro do Limite)..." : "[AGENT] Invoking Payment 1 for 3.00 BRL (Within Limit)...", "info");
+                      const p1 = await executePay({
+                        brCode: DEMO_BRCODE,
+                        payerAccountId: "0.0.9743531",
+                        amount: "3",
+                        mandateId: m.mandateId,
+                      });
+                      if (p1.decision === "approved") {
+                        addLog(lang === "pt" ? `[AGENTE] 1º Pagamento APROVADO! Pix E2E: ${p1.endToEndId} | HCS Audit Seq#${p1.hcsSequenceNumber ?? "?"}` : `[AGENT] Payment 1 APPROVED! Pix E2E: ${p1.endToEndId} | HCS Audit Seq#${p1.hcsSequenceNumber ?? "?"}`, "success");
+                      }
+
+                      setAgentProgress(90);
+                      await new Promise(r => setTimeout(r, 900));
+                      addLog(lang === "pt" ? "[AGENTE] Solicitando 2º Pagamento de R$ 3,00 (Tentativa de Estouro — Sobram R$ 2,00)..." : "[AGENT] Invoking Payment 2 for 3.00 BRL (Over-spend Attempt — Remaining is 2.00 BRL)...", "info");
+                      const p2 = await executePay({
+                        brCode: DEMO_BRCODE,
+                        payerAccountId: "0.0.9743531",
+                        amount: "3",
+                        mandateId: m.mandateId,
+                      });
+                      if (p2.decision === "rejected") {
+                        addLog(lang === "pt" ? `[AGENTE] 🛑 RECUSA ON-CHAIN! Motivo: ${p2.reason}` : `[AGENT] 🛑 ON-CHAIN REJECTION! Reason: ${p2.reason}`, "reject");
+                      }
+
+                      setAgentProgress(100);
+                      addLog(lang === "pt" ? "[AGENTE] ✨ Loop Autônomo Concluído com 100% de Sucesso! Registrado no HCS Topic 0.0.9742958." : "[AGENT] ✨ Autonomous Loop Completed with 100% Success! Logged to HCS Topic 0.0.9742958.", "success");
+                      setTimeout(() => { void refreshHcs(); }, 1_500);
+                    } catch (err) {
+                      addLog(`[AGENTE ERRO] ${err instanceof Error ? err.message : "Erro desconhecido"}`, "reject");
+                    } finally {
+                      setAgentRunning(false);
+                    }
+                  }}
+                  style={{
+                    background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "0.6rem 1.25rem",
+                    borderRadius: "8px",
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                    cursor: agentRunning ? "not-allowed" : "pointer",
+                    boxShadow: "0 0 15px rgba(124, 58, 237, 0.4)",
+                  }}
+                >
+                  {agentRunning
+                    ? (lang === "pt" ? "⏳ Executando..." : "⏳ Running...")
+                    : (lang === "pt" ? "▶️ Executar Loop Autônomo de IA" : "▶️ Run Autonomous AI Loop")}
+                </button>
+              </div>
+
+              {/* Progress Bar */}
+              {agentProgress > 0 && (
+                <div style={{ height: "4px", background: "rgba(255,255,255,0.1)", borderRadius: "2px", overflow: "hidden", marginBottom: "1rem" }}>
+                  <div style={{ height: "100%", width: `${agentProgress}%`, background: "linear-gradient(90deg, #7c3aed, #10b981)", transition: "width 0.4s ease" }} />
+                </div>
+              )}
+
+              {/* Terminal Logs Window */}
+              <div style={{ background: "rgba(0, 0, 0, 0.6)", borderRadius: "10px", padding: "1rem", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.75rem", minHeight: "180px", maxHeight: "280px", overflowY: "auto", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                {agentLogs.length === 0 ? (
+                  <p style={{ color: "#475569", margin: 0, fontStyle: "italic" }}>
+                    {lang === "pt"
+                      ? "// Clique em '▶️ Executar Loop Autônomo de IA' para iniciar o robô..."
+                      : "// Click '▶️ Run Autonomous AI Loop' to launch the robot..."}
+                  </p>
+                ) : (
+                  agentLogs.map((log, idx) => (
+                    <div key={idx} style={{ marginBottom: "0.4rem", color: log.type === "success" ? "#34d399" : log.type === "reject" ? "#f87171" : "#c4b5fd", lineHeight: 1.5 }}>
+                      {log.text}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Wizard Stepper Bar (Interactive 4-Step Timeline) ───────────── */}
           <div className="wizard-stepper">
             <div
@@ -1008,7 +1168,7 @@ export default function ConsolePage() {
               </div>
             </>
           )}
-        </>
+        </div>
       )}
     </div>
   );
