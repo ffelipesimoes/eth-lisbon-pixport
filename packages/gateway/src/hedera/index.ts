@@ -9,8 +9,8 @@ import {
 } from "@hashgraph/sdk";
 
 const MIRROR_BASE = "https://testnet.mirrornode.hedera.com";
-const HCS_TOPIC_ID = process.env.HCS_TOPIC_ID ?? "";
-const HTS_TOKEN_ID = process.env.HTS_TOKEN_ID ?? "";
+const HCS_TOPIC_ID = process.env.HCS_TOPIC_ID || "0.0.9742958";
+const HTS_TOKEN_ID = process.env.HTS_TOKEN_ID || "0.0.9742957";
 
 function buildClient(): Client {
   const accountId = process.env.HEDERA_OPERATOR_ID ?? "";
@@ -36,17 +36,29 @@ export async function checkAllowance(
   requestedAmountBrl: string,
   tokenId: string = HTS_TOKEN_ID,
 ): Promise<AllowanceResult> {
-  if (!tokenId) {
+  const isMock = process.env.ALLOWANCE_MOCK === "true";
+  const effectiveTokenId = tokenId || "0.0.9742957";
+
+  if (isMock) {
+    const requestedUnits = BigInt(Math.round(parseFloat(requestedAmountBrl) * 100));
+    const mockRemainingUnits = 1000000n; // R$ 10.000,00 mock allowance
+    if (requestedUnits > mockRemainingUnits) {
+      return {
+        allowed: false,
+        remainingUnits: mockRemainingUnits,
+        remainingBrl: "10000.00",
+        reason: `Requested ${requestedAmountBrl} BRL exceeds remaining mock allowance 10000.00 BRL`,
+      };
+    }
     return {
-      allowed: false,
-      remainingUnits: 0n,
-      remainingBrl: "0.00",
-      reason: "HTS_TOKEN_ID not configured",
+      allowed: true,
+      remainingUnits: mockRemainingUnits,
+      remainingBrl: "10000.00",
     };
   }
 
   try {
-    const url = `${MIRROR_BASE}/api/v1/accounts/${ownerAccountId}/allowances/tokens?spender.id=${spenderAccountId}&token.id=${tokenId}`;
+    const url = `${MIRROR_BASE}/api/v1/accounts/${ownerAccountId}/allowances/tokens?spender.id=${spenderAccountId}&token.id=${effectiveTokenId}`;
     const resp = await fetch(url);
     if (!resp.ok) {
       return {
