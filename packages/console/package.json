@@ -10,14 +10,17 @@
   },
   "dependencies": {
     "@worldcoin/idkit": "^2.4.2",
+    "animejs": "^3.2.2",
     "next": "^15.4.2",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@types/node": "^22.16.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.5",
+    "@types/three": "^0.185.1",
     "typescript": "5.8.2"
   }
 }

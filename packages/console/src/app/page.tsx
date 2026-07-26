@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { IDKitWidget, VerificationLevel, type ISuccessResult } from "@worldcoin/idkit";
+import LandingPage from "../components/LandingPage";
 import type {
   MandateStatus,
   HcsEntry,
@@ -35,7 +36,7 @@ const DEMO_PIX_KEY = "teste@pixport.demo";
 const DEMO_PAYER = "0.0.9743531";
 
 export type WorldLevel = "orb" | "device" | "none";
-export type MainView = "overview" | "wizard";
+export type MainView = "landing" | "overview" | "wizard";
 
 function parseHcsMessage(raw: string): string {
   try {
@@ -54,8 +55,8 @@ export default function ConsolePage() {
   const [lang, setLang] = useState<Language>("pt");
   const t = translations[lang];
 
-  // ── View State (Overview vs Wizard) ──────────────────────────────────────
-  const [mainView, setMainView] = useState<MainView>("overview");
+  // ── View State (Landing | Overview | Wizard) ─────────────────────────────
+  const [mainView, setMainView] = useState<MainView>("landing");
 
   // ── Wizard Step State ────────────────────────────────────────────────────
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
@@ -348,19 +349,40 @@ export default function ConsolePage() {
     }
   }, [mandateId]);
 
+  /* ── Landing Page ──────────────────────────────────────────────────────── */
+  if (mainView === "landing") {
+    return (
+      <LandingPage
+        lang={lang}
+        setLang={setLang}
+        onStartDemo={() => setMainView("wizard")}
+      />
+    );
+  }
+
   return (
     <div className="container">
       {/* ── Header Branding & i18n Switcher ──────────────────────────────── */}
       <header>
         <div className="header-top">
           <h1 className="brand-title">
-            <span>⚡ {t.headerTitle}</span>
+            <img src="/logo.png" alt="PIXPORT Logo" style={{ height: "40px", width: "40px", borderRadius: "8px", objectFit: "cover", boxShadow: "0 0 12px rgba(168, 85, 247, 0.4)" }} />
+            <span>{t.headerTitle}</span>
             <span className="dim" style={{ fontSize: "0.95rem", fontWeight: 400 }}>
-              {mainView === "overview" ? "Landing & OTC Impact" : "Wizard"}
+              {mainView === "overview" ? "" : "Wizard"}
             </span>
           </h1>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            {/* Back to Landing */}
+            <button
+              className="btn-secondary"
+              onClick={() => setMainView("landing")}
+              style={{ fontSize: "0.75rem", padding: "0.25rem 0.65rem" }}
+            >
+              ← {lang === "pt" ? "Início" : "Home"}
+            </button>
+
             <button
               className="btn-secondary"
               onClick={handleResetAll}
